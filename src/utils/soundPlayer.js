@@ -1,6 +1,12 @@
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 
-const soundMap = {
+let soundEnabled = true;
+
+export function setSoundEnabled(val) {
+  soundEnabled = val;
+}
+
+const soundFiles = {
   'xp-earn':          require('../../assets/sounds/xp-earn.mp3'),
   'badge-unlock':     require('../../assets/sounds/badge-unlock.mp3'),
   'level-up':         require('../../assets/sounds/level-up.mp3'),
@@ -12,21 +18,14 @@ const soundMap = {
   'app-intro':        require('../../assets/sounds/app-intro.mp3'),
 };
 
-let soundEnabled = true;
-
-export function setSoundEnabled(val) {
-  soundEnabled = val;
-}
-
 export async function playSound(name) {
   if (!soundEnabled) return;
   try {
-    const { sound } = await Audio.Sound.createAsync(soundMap[name]);
-    await sound.playAsync();
-    sound.setOnPlaybackStatusUpdate(status => {
-      if (status.didJustFinish) sound.unloadAsync();
-    });
+    const file = soundFiles[name];
+    if (!file) return;
+    const player = useAudioPlayer(file);
+    player.play();
   } catch (e) {
-    // Silently fail if sound file not yet added
+    // Silently fail
   }
 }
