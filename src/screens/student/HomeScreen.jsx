@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,6 +10,7 @@ import { Text, Surface } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 import { getXPProgress } from '../../utils/levelCalc';
+import { getCourseById } from '../../services/lessonService';
 import useAuthStore from '../../store/authStore';
 import useUserStore from '../../store/userStore';
 
@@ -38,6 +39,11 @@ const BADGE_META = {
   top_10:          { icon: 'medal',             color: colors.accent },
   code_veteran:    { icon: 'shield-star',       color: colors.primary },
 };
+
+const LEVEL_TITLES = [
+  'Newbie', 'Apprentice', 'Coder', 'Developer', 'Engineer',
+  'Architect', 'Senior Dev', 'Tech Lead', 'Principal', 'Code Legend',
+];
 
 function XPBar({ xp }) {
   const { current, nextLevel, progress, xpIntoLevel, xpNeeded } = getXPProgress(xp);
@@ -74,17 +80,10 @@ function StatCard({ icon, value, label, color }) {
 }
 
 function GoalRing({ dailyGoalMins }) {
-  // Placeholder progress — Phase 3 will wire real study time
   const progress = 0.3;
-  const size = 90;
-  const stroke = 8;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const filled = circumference * (1 - progress);
-
   return (
     <View style={styles.goalRingContainer}>
-      <View style={[styles.goalRingOuter, { width: size, height: size, borderRadius: size / 2 }]}>
+      <View style={[styles.goalRingOuter, { borderColor: colors.primary }]}>
         <View style={styles.goalRingInner}>
           <Text variant="titleMedium" style={styles.goalRingValue}>
             {Math.round(dailyGoalMins * progress)}
@@ -103,6 +102,7 @@ export default function HomeScreen({ navigation }) {
   const { user } = useAuthStore();
   const { profile } = useUserStore();
   const [greeting, setGreeting] = useState('');
+  const [enrolledCourseTitles, setEnrolledCourseTitles] = useState({});
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -110,6 +110,21 @@ export default function HomeScreen({ navigation }) {
     else if (hour < 17) setGreeting('Good afternoon');
     else setGreeting('Good evening');
   }, []);
+
+  useEffect(() => {
+    if (!profile?.enrolledCourses?.length) return;
+    const fetchTitles = async () => {
+      const map = {};
+      await Promise.all(
+        profile.enrolledCourses.map(async (id) => {
+          const course = await getCourseById(id);
+          if (course) map[id] = course.title;
+        })
+      );
+      setEnrolledCourseTitles(map);
+    };
+    fetchTitles();
+  }, [profile?.enrolledCourses]);
 
   if (!profile) {
     return (
@@ -124,6 +139,7 @@ export default function HomeScreen({ navigation }) {
     ? profile.badges[profile.badges.length - 1]
     : null;
   const badgeMeta = latestBadge ? BADGE_META[latestBadge] : null;
+  const levelTitle = LEVEL_TITLES[(profile.level || 1) - 1] || 'Newbie';
 
   return (
     <ScrollView
@@ -131,7 +147,7 @@ export default function HomeScreen({ navigation }) {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* ── Header ── */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text variant="bodyMedium" style={styles.greetingText}>{greeting},</Text>
@@ -141,7 +157,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.levelBadge}>
             <MaterialCommunityIcons name="star-four-points" size={12} color={colors.accent} />
             <Text variant="labelSmall" style={styles.levelBadgeText}>
-              {' '}Level {profile.level} {profile.level <= 10 ? ['Newbie','Apprentice','Coder','Developer','Engineer','Architect','Senior Dev','Tech Lead','Principal','Code Legend'][profile.level - 1] : ''}
+              {' '}Level {profile.level || 1} · {levelTitle}
             </Text>
           </View>
         </View>
@@ -154,34 +170,19 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* ── XP Bar ── */}
+      {/* XP Bar */}
       <Surface style={styles.xpCard} elevation={2}>
         <XPBar xp={profile.xp || 0} />
       </Surface>
 
-      {/* ── Stats Row ── */}
+      {/* Stats Row */}
       <View style={styles.statsRow}>
-        <StatCard
-          icon="fire"
-          value={profile.streak || 0}
-          label="Day Streak"
-          color="#EA580C"
-        />
-        <StatCard
-          icon="lightning-bolt"
-          value={profile.xp || 0}
-          label="Total XP"
-          color={colors.accent}
-        />
-        <StatCard
-          icon="medal"
-          value={profile.badges?.length || 0}
-          label="Badges"
-          color={colors.primary}
-        />
+        <StatCard icon="fire"          value={profile.streak || 0}         label="Day Streak" color="#EA580C" />
+        <StatCard icon="lightning-bolt" value={profile.xp || 0}            label="Total XP"   color={colors.accent} />
+        <StatCard icon="medal"          value={profile.badges?.length || 0} label="Badges"     color={colors.primary} />
       </View>
 
-      {/* ── Daily Goal + Latest Badge ── */}
+      {/* Daily Goal + Latest Badge */}
       <View style={styles.goalBadgeRow}>
         <Surface style={styles.goalCard} elevation={2}>
           <GoalRing dailyGoalMins={profile.dailyGoalMins || 30} />
@@ -190,37 +191,23 @@ export default function HomeScreen({ navigation }) {
         <Surface style={styles.latestBadgeCard} elevation={2}>
           {badgeMeta ? (
             <>
-              <MaterialCommunityIcons
-                name={badgeMeta.icon}
-                size={40}
-                color={badgeMeta.color}
-              />
-              <Text variant="labelMedium" style={styles.latestBadgeTitle}>
-                Latest Badge
-              </Text>
+              <MaterialCommunityIcons name={badgeMeta.icon} size={40} color={badgeMeta.color} />
+              <Text variant="labelMedium" style={styles.latestBadgeTitle}>Latest Badge</Text>
               <Text variant="labelSmall" style={styles.latestBadgeName}>
                 {latestBadge?.replace(/_/g, ' ')}
               </Text>
             </>
           ) : (
             <>
-              <MaterialCommunityIcons
-                name="trophy-outline"
-                size={40}
-                color={colors.textSecondary}
-              />
-              <Text variant="labelMedium" style={styles.latestBadgeTitle}>
-                No badges yet
-              </Text>
-              <Text variant="labelSmall" style={styles.latestBadgeName}>
-                Complete a lesson!
-              </Text>
+              <MaterialCommunityIcons name="trophy-outline" size={40} color={colors.textSecondary} />
+              <Text variant="labelMedium" style={styles.latestBadgeTitle}>No badges yet</Text>
+              <Text variant="labelSmall" style={styles.latestBadgeName}>Complete a lesson!</Text>
             </>
           )}
         </Surface>
       </View>
 
-      {/* ── Enrolled Courses ── */}
+      {/* My Courses */}
       <View style={styles.sectionHeader}>
         <Text variant="titleMedium" style={styles.sectionTitle}>My Courses</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Learn')}>
@@ -229,12 +216,16 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       {profile.enrolledCourses?.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.coursesRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.coursesRow}
+        >
           {profile.enrolledCourses.map((courseId) => (
             <Surface key={courseId} style={styles.courseChip} elevation={2}>
               <MaterialCommunityIcons name="book-open-variant" size={20} color={colors.primary} />
               <Text variant="labelMedium" style={styles.courseChipText} numberOfLines={1}>
-                {courseId}
+                {enrolledCourseTitles[courseId] || '...'}
               </Text>
             </Surface>
           ))}
@@ -253,7 +244,7 @@ export default function HomeScreen({ navigation }) {
         </Surface>
       )}
 
-      {/* ── Subject Interests ── */}
+      {/* Subject Interests */}
       {profile.subjectInterests?.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
@@ -292,20 +283,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 20,
   },
-  headerLeft: {
-    flex: 1,
-  },
-  greetingText: {
-    color: colors.textSecondary,
-  },
+  headerLeft: { flex: 1 },
+  greetingText: { color: colors.textSecondary },
   nameText: {
     color: colors.textPrimary,
     fontWeight: 'bold',
@@ -322,15 +307,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  levelBadgeText: {
-    color: colors.accent,
-    fontWeight: 'bold',
-  },
-  avatarButton: {
-    padding: 4,
-  },
+  levelBadgeText: { color: colors.accent, fontWeight: 'bold' },
+  avatarButton: { padding: 4 },
 
-  // XP Card
   xpCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
@@ -345,14 +324,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  xpLabel: {
-    color: colors.textPrimary,
-    fontWeight: 'bold',
-  },
-  xpNumbers: {
-    color: colors.accent,
-    fontWeight: 'bold',
-  },
+  xpLabel: { color: colors.textPrimary, fontWeight: 'bold' },
+  xpNumbers: { color: colors.accent, fontWeight: 'bold' },
   xpTrack: {
     height: 10,
     backgroundColor: colors.border,
@@ -365,12 +338,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 5,
   },
-  xpNext: {
-    color: colors.textSecondary,
-    textAlign: 'right',
-  },
+  xpNext: { color: colors.textSecondary, textAlign: 'right' },
 
-  // Stats
   statsRow: {
     flexDirection: 'row',
     gap: 10,
@@ -386,16 +355,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  statValue: {
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-  },
-  statLabel: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
+  statValue: { fontWeight: 'bold', color: colors.textPrimary },
+  statLabel: { color: colors.textSecondary, textAlign: 'center' },
 
-  // Goal + Badge row
   goalBadgeRow: {
     flexDirection: 'row',
     gap: 12,
@@ -411,30 +373,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  goalRingContainer: {
-    alignItems: 'center',
-    gap: 8,
-  },
+  goalRingContainer: { alignItems: 'center', gap: 8 },
   goalRingOuter: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 8,
-    borderColor: colors.primary,
   },
-  goalRingInner: {
-    alignItems: 'center',
-  },
-  goalRingValue: {
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
-  goalRingLabel: {
-    color: colors.textSecondary,
-  },
-  goalRingTitle: {
-    color: colors.textSecondary,
-  },
+  goalRingInner: { alignItems: 'center' },
+  goalRingValue: { color: colors.primary, fontWeight: 'bold' },
+  goalRingLabel: { color: colors.textSecondary },
+  goalRingTitle: { color: colors.textSecondary },
+
   latestBadgeCard: {
     flex: 1,
     backgroundColor: colors.card,
@@ -446,9 +399,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  latestBadgeTitle: {
-    color: colors.textSecondary,
-  },
+  latestBadgeTitle: { color: colors.textSecondary },
   latestBadgeName: {
     color: colors.textPrimary,
     fontWeight: 'bold',
@@ -456,23 +407,16 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
 
-  // Courses
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
-  sectionTitle: {
-    color: colors.textPrimary,
-    fontWeight: 'bold',
-  },
-  seeAll: {
-    color: colors.primary,
-  },
-  coursesRow: {
-    marginBottom: 24,
-  },
+  sectionTitle: { color: colors.textPrimary, fontWeight: 'bold' },
+  seeAll: { color: colors.primary },
+
+  coursesRow: { marginBottom: 24 },
   courseChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -485,10 +429,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  courseChipText: {
-    color: colors.textPrimary,
-    maxWidth: 120,
-  },
+  courseChipText: { color: colors.textPrimary, maxWidth: 120 },
+
   emptyCoursesCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
@@ -499,16 +441,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  emptyCoursesText: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  emptyCoursesLink: {
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
+  emptyCoursesText: { color: colors.textSecondary, textAlign: 'center' },
+  emptyCoursesLink: { color: colors.primary, fontWeight: 'bold' },
 
-  // Interests
   interestsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -523,8 +458,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary + '44',
   },
-  interestText: {
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
+  interestText: { color: colors.primary, fontWeight: 'bold' },
 });

@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer } from 'expo-audio';
 
 let soundEnabled = true;
 
@@ -24,11 +24,8 @@ export async function playSound(name) {
   try {
     const file = soundFiles[name];
     if (!file) return;
-    const { sound } = await Audio.Sound.createAsync(file);
-    await sound.playAsync();
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.didJustFinish) sound.unloadAsync();
-    });
+    const player = createAudioPlayer(file);
+    player.play();
   } catch (e) {
     // Silently fail
   }
