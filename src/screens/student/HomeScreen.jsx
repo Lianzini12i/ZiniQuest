@@ -13,6 +13,7 @@ import { getXPProgress } from '../../utils/levelCalc';
 import { getCourseById } from '../../services/lessonService';
 import useAuthStore from '../../store/authStore';
 import useUserStore from '../../store/userStore';
+import { logoutUser } from '../../services/authService';
 
 const { width } = Dimensions.get('window');
 
@@ -161,13 +162,18 @@ export default function HomeScreen({ navigation }) {
             </Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.avatarButton}>
-          <MaterialCommunityIcons
-            name={avatarMeta.icon}
-            size={52}
+        <TouchableOpacity
+          style={styles.avatarButton}
+            onPress={async () => {
+              await logoutUser();
+          }}
+      >
+      <MaterialCommunityIcons
+        name={avatarMeta.icon}
+          size={52}
             color={avatarMeta.color}
-          />
-        </TouchableOpacity>
+      />
+      </TouchableOpacity>
       </View>
 
       {/* XP Bar */}
