@@ -158,30 +158,31 @@ export default function QuizScreen({ route, navigation }) {
       const passed   = score >= (quiz.passMark || 60);
       const perfect  = score === 100;
 
-      let xpAwarded = 0;
-      if (passed) {
-        xpAwarded += isFirstAttempt ? XP_RULES.QUIZ_PASS_FIRST : XP_RULES.QUIZ_PASS_RETRY;
-        if (perfect) xpAwarded += XP_RULES.QUIZ_PERFECT_BONUS;
-        await awardXP('QUIZ_PASS', quizId, xpAwarded);
-        await triggerBadgeCheck(user.uid);
-      }
+    let xpAwarded = 0;
+    if (passed && isFirstAttempt) {
+      xpAwarded += XP_RULES.QUIZ_PASS_FIRST;
+      if (perfect) xpAwarded += XP_RULES.QUIZ_PERFECT_BONUS;
+      await awardXP('QUIZ_PASS', quizId, xpAwarded);
+      await triggerBadgeCheck(user.uid);
+    }
 
       await submitQuizAttempt(
         user.uid, quizId, lessonId,
         answers, score, passed, xpAwarded, isFirstAttempt
       );
 
-      navigation.replace('QuizResult', {
-        score,
-        correct,
-        total,
-        passed,
-        perfect,
-        xpAwarded,
-        passMark: quiz.passMark || 60,
-        lessonTitle,
-        lessonId,
-      });
+    navigation.replace('QuizResult', {
+      score,
+      correct,
+      total,
+      passed,
+      perfect,
+      xpAwarded,
+      passMark: quiz.passMark || 60,
+      lessonTitle,
+      lessonId,
+      quizId,
+    });
     } catch (e) {
       console.warn('Quiz submit failed:', e.message);
     } finally {
