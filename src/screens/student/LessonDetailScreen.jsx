@@ -36,62 +36,75 @@ function CodeBlock({ text }) {
 }
 
 function renderContent(content, hasCodeBlocks) {
+  // Replace literal \n strings with real newlines
+  const normalised = content
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '    ');
+
+  const lines = normalised.split('\n');
+
   if (!hasCodeBlocks) {
-    return content.split('\n').map((line, i) => (
-      <Text key={i} variant="bodyMedium" style={styles.contentLine}>
-        {line || ' '}
-      </Text>
-    ));
+    return lines.map((line, i) => {
+      if (line.trim() === '') return <View key={i} style={{ height: 10 }} />;
+      return (
+        <Text key={i} variant="bodyMedium" style={styles.contentLine}>
+          {line}
+        </Text>
+      );
+    });
   }
 
-  // Split content into regular text and code blocks
-  const lines = content.split('\n');
   const elements = [];
   let codeBuffer = [];
-  let inCode = false;
   let textBuffer = [];
+  let elementKey = 0;
 
-  const flushText = (key) => {
-    if (textBuffer.length > 0) {
-      elements.push(
-        <View key={`text-${key}`}>
-          {textBuffer.map((line, i) => (
+  const flushText = () => {
+    if (textBuffer.length === 0) return;
+    const block = textBuffer.slice();
+    textBuffer = [];
+    elements.push(
+      <View key={`text-${elementKey++}`}>
+        {block.map((line, i) => {
+          if (line.trim() === '') return <View key={i} style={{ height: 10 }} />;
+          return (
             <Text key={i} variant="bodyMedium" style={styles.contentLine}>
-              {line || ' '}
+              {line}
             </Text>
-          ))}
-        </View>
-      );
-      textBuffer = [];
-    }
+          );
+        })}
+      </View>
+    );
   };
 
-  lines.forEach((line, i) => {
-    // Detect code-like lines (starts with spaces/tabs, contains operators)
-    const isCodeLike = (
-      line.startsWith('    ') ||
-      line.match(/^(def |class |if |for |while |print|import |from |return |#)/) ||
-      line.match(/[=\+\-\*\/\(\)\[\]\{\}]/) && !line.match(/^[A-Z]/)
-    );
+  const flushCode = () => {
+    if (codeBuffer.length === 0) return;
+    const block = codeBuffer.slice();
+    codeBuffer = [];
+    elements.push(<CodeBlock key={`code-${elementKey++}`} text={block.join('\n')} />);
+  };
 
-    if (isCodeLike && hasCodeBlocks) {
-      flushText(i);
+  const CODE_PATTERNS = [
+    /^(def |class |if |elif |else:|for |while |try:|except|return |import |from |#)/,
+    /^(print|input|len|range|int|float|str|bool|list|dict)\s*\(/,
+    /^\s{4,}/,
+    /^[a-z_][a-z_0-9]*\s*=/,
+    /^[a-z_][a-z_0-9]*\s*\(/,
+  ];
+
+  lines.forEach((line) => {
+    const isCode = hasCodeBlocks && CODE_PATTERNS.some(p => p.test(line));
+    if (isCode) {
+      flushText();
       codeBuffer.push(line);
     } else {
-      if (codeBuffer.length > 0) {
-        elements.push(
-          <CodeBlock key={`code-${i}`} text={codeBuffer.join('\n')} />
-        );
-        codeBuffer = [];
-      }
+      flushCode();
       textBuffer.push(line);
     }
   });
 
-  if (codeBuffer.length > 0) {
-    elements.push(<CodeBlock key="code-end" text={codeBuffer.join('\n')} />);
-  }
-  flushText('end');
+  flushCode();
+  flushText();
 
   return elements;
 }
