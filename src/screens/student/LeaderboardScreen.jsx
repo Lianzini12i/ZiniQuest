@@ -335,6 +335,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
+    paddingBottom: 12,
   },
   headerTitle: {
     color: colors.textPrimary,
@@ -375,6 +376,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 4,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.border,
   },
