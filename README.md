@@ -12,8 +12,23 @@ The platform allows students to earn XP, collect badges, and climb course-specif
  * **UI Library:** React Native Paper (Material Design 3)
  * **Backend:** Firebase (Authentication, Firestore, and Cloud Functions)
  * **Storage:** Cloudinary
+
 ## 📈 Project Status
-This project is currently in the **Initialization Stage**. The core architecture is being defined, and the development environment is being established.
+This project is currently in the **Active Development Stage**. The foundational architecture is set, the core student-facing user experience is built, and backend connectivity is actively being integrated into the completed pages.
+
+### 🚧 Feature Implementation Tracker
+*   **Student Experience:**
+    *   [x] Authentication Pages & Logic
+    *   [x] Quizzes Interface & Core Flow
+    *   [x] Leaderboards Screen
+*   **Instructor & Admin Portals:**
+    *   [ ] Student Progress Tracking Pages (In Progress)
+    *   [ ] Administrator Management Dashboards
+*   **Backend & Infrastructure:**
+    *   [x] Firebase Authentication Integration
+    *   [x] Firestore Database Architecture
+    *   [ ] Firebase Cloud Functions *(On hold due to Firebase Blaze plan requirements)*
+
 ## 📝 Author
 **Kazeem Okikiola El-Fayyd**
 
