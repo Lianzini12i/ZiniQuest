@@ -96,7 +96,7 @@ function LeaderboardItem({ entry, isCurrentUser, rank }) {
   );
 }
 
-function TopThreePodium({ entries, currentUserId }) {
+function TopThreePodium({ entries, currentUserId, navigation }) {
   if (entries.length < 1) return null;
   const first  = entries[0];
   const second = entries[1];
@@ -108,6 +108,19 @@ function TopThreePodium({ entries, currentUserId }) {
     const color      = RANK_COLORS[rank];
     const isSelf     = entry.userId === currentUserId;
     return (
+  <TouchableOpacity
+    style={styles.podiumItem}
+    onPress={() => {
+      if (!isSelf && entry.userId) {
+        hapticLight();
+        navigation.navigate('PublicProfile', {
+          userId: entry.userId,
+          userName: entry.name,
+        });
+      }
+    }}
+    activeOpacity={isSelf ? 1 : 0.7}
+  >
       <View style={styles.podiumItem}>
         <View style={[styles.podiumAvatar, { borderColor: color }]}>
           <MaterialCommunityIcons name={avatarMeta.icon} size={28} color={avatarMeta.color} />
@@ -123,7 +136,8 @@ function TopThreePodium({ entries, currentUserId }) {
           <Text style={[styles.podiumRank, { color }]}>#{rank}</Text>
         </View>
       </View>
-    );
+  </TouchableOpacity>  
+  );
   };
 
   return (
@@ -312,15 +326,28 @@ export default function LeaderboardScreen() {
             />
           }
           ListHeaderComponent={
-            <TopThreePodium entries={topThree} currentUserId={user.uid} />
+            <TopThreePodium entries={topThree} currentUserId={user.uid} navigation={navigation} />
           }
-          renderItem={({ item, index }) => (
-            <LeaderboardItem
-              entry={item}
-              rank={index + 4}
-              isCurrentUser={item.userId === user.uid}
-            />
-          )}
+renderItem={({ item, index }) => (
+  <TouchableOpacity
+    onPress={() => {
+      if (item.userId !== user.uid) {
+        hapticLight();
+        navigation.navigate('PublicProfile', {
+          userId: item.userId,
+          userName: item.name,
+        });
+      }
+    }}
+    activeOpacity={item.userId === user.uid ? 1 : 0.7}
+  >
+    <LeaderboardItem
+      entry={item}
+      rank={index + 4}
+      isCurrentUser={item.userId === user.uid}
+    />
+  </TouchableOpacity>
+)}
         />
       )}
     </View>

@@ -14,6 +14,7 @@ import QuizResultScreen from '../screens/student/QuizResultScreen';
 import LeaderboardScreen from '../screens/student/LeaderboardScreen';
 import BadgesScreen from '../screens/student/BadgesScreen';
 import ProfileScreen from '../screens/student/ProfileScreen';
+import PublicProfileScreen from '../screens/student/PublicProfileScreen';
 
 const Tab = createBottomTabNavigator();
 const LearnStack = createNativeStackNavigator();
@@ -27,6 +28,16 @@ function LearnStackNavigator() {
       <LearnStack.Screen name="Quiz" component={QuizScreen} />
       <LearnStack.Screen name="QuizResult" component={QuizResultScreen} />
     </LearnStack.Navigator>
+  );
+}
+const LeaderboardStack = createNativeStackNavigator();
+
+function LeaderboardStackNavigator() {
+  return (
+    <LeaderboardStack.Navigator screenOptions={{ headerShown: false }}>
+      <LeaderboardStack.Screen name="LeaderboardMain" component={LeaderboardScreen} />
+      <LeaderboardStack.Screen name="PublicProfile" component={PublicProfileScreen} />
+    </LeaderboardStack.Navigator>
   );
 }
 
@@ -64,7 +75,7 @@ export default function StudentTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Learn" component={LearnStackNavigator} />
-      <Tab.Screen name="Leaderboard" component={LeaderboardScreen} />
+      <Tab.Screen name="Leaderboard" component={LeaderboardStackNavigator} />
       <Tab.Screen name="Badges" component={BadgesScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
