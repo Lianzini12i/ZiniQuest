@@ -15,6 +15,7 @@ import { colors } from '../constants/colors';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
+import LevelUpScreen from '../screens/shared/LevelUpScreen';
 import NoInternetScreen from '../screens/shared/NoInternetScreen';
 import StudentTabs from './StudentTabs';
 import InstructorTabs from './InstructorTabs';
