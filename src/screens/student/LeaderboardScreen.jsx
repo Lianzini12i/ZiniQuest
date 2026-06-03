@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 import { db } from '../../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { hapticLight } from '../../utils/haptics';
 import useAuthStore from '../../store/authStore';
 import useUserStore from '../../store/userStore';
 
@@ -107,21 +108,21 @@ function TopThreePodium({ entries, currentUserId, navigation }) {
     const avatarMeta = AVATAR_ICONS[entry.avatar] || AVATAR_ICONS.avatar_1;
     const color      = RANK_COLORS[rank];
     const isSelf     = entry.userId === currentUserId;
+
     return (
-  <TouchableOpacity
-    style={styles.podiumItem}
-    onPress={() => {
-      if (!isSelf && entry.userId) {
-        hapticLight();
-        navigation.navigate('PublicProfile', {
-          userId: entry.userId,
-          userName: entry.name,
-        });
-      }
-    }}
-    activeOpacity={isSelf ? 1 : 0.7}
-  >
-      <View style={styles.podiumItem}>
+      <TouchableOpacity
+        style={styles.podiumItem}
+        onPress={() => {
+          if (!isSelf && entry.userId) {
+            hapticLight();
+            navigation.navigate('PublicProfile', {
+              userId:   entry.userId,
+              userName: entry.name,
+            });
+          }
+        }}
+        activeOpacity={isSelf ? 1 : 0.7}
+      >
         <View style={[styles.podiumAvatar, { borderColor: color }]}>
           <MaterialCommunityIcons name={avatarMeta.icon} size={28} color={avatarMeta.color} />
           {isSelf && <View style={styles.podiumSelfDot} />}
@@ -135,9 +136,8 @@ function TopThreePodium({ entries, currentUserId, navigation }) {
         <View style={[styles.podiumBlock, { height, backgroundColor: color + '33', borderColor: color }]}>
           <Text style={[styles.podiumRank, { color }]}>#{rank}</Text>
         </View>
-      </View>
-  </TouchableOpacity>  
-  );
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -149,7 +149,7 @@ function TopThreePodium({ entries, currentUserId, navigation }) {
   );
 }
 
-export default function LeaderboardScreen() {
+export default function LeaderboardScreen({ navigation }) {
   const { user }    = useAuthStore();
   const { profile } = useUserStore();
 
@@ -239,7 +239,7 @@ export default function LeaderboardScreen() {
             <TouchableOpacity
               key={item}
               style={[styles.courseChip, activeCourse === item && styles.courseChipActive]}
-              onPress={() => setActiveCourse(item)}
+              onPress={() => { hapticLight(); setActiveCourse(item); }}
             >
               <Text
                 variant="labelMedium"
@@ -262,7 +262,7 @@ export default function LeaderboardScreen() {
           <TouchableOpacity
             key={tab}
             style={[styles.tab, activeTab === tab && styles.tabActive]}
-            onPress={() => setActiveTab(tab)}
+            onPress={() => { hapticLight(); setActiveTab(tab); }}
           >
             <MaterialCommunityIcons
               name={tab === 'allTime' ? 'trophy' : 'calendar-week'}
@@ -326,28 +326,32 @@ export default function LeaderboardScreen() {
             />
           }
           ListHeaderComponent={
-            <TopThreePodium entries={topThree} currentUserId={user.uid} navigation={navigation} />
+            <TopThreePodium
+              entries={topThree}
+              currentUserId={user.uid}
+              navigation={navigation}
+            />
           }
-renderItem={({ item, index }) => (
-  <TouchableOpacity
-    onPress={() => {
-      if (item.userId !== user.uid) {
-        hapticLight();
-        navigation.navigate('PublicProfile', {
-          userId: item.userId,
-          userName: item.name,
-        });
-      }
-    }}
-    activeOpacity={item.userId === user.uid ? 1 : 0.7}
-  >
-    <LeaderboardItem
-      entry={item}
-      rank={index + 4}
-      isCurrentUser={item.userId === user.uid}
-    />
-  </TouchableOpacity>
-)}
+          renderItem={({ item, index }) => (
+            <TouchableOpacity
+              onPress={() => {
+                if (item.userId !== user.uid) {
+                  hapticLight();
+                  navigation.navigate('PublicProfile', {
+                    userId:   item.userId,
+                    userName: item.name,
+                  });
+                }
+              }}
+              activeOpacity={item.userId === user.uid ? 1 : 0.7}
+            >
+              <LeaderboardItem
+                entry={item}
+                rank={index + 4}
+                isCurrentUser={item.userId === user.uid}
+              />
+            </TouchableOpacity>
+          )}
         />
       )}
     </View>
@@ -375,6 +379,7 @@ const styles = StyleSheet.create({
   courseChips: {
     paddingHorizontal: 20,
     gap: 8,
+    marginBottom: 12,
     flexDirection: 'row',
   },
   courseChip: {
@@ -390,13 +395,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  courseChipText: {
-    color: colors.textSecondary,
-  },
-  courseChipTextActive: {
-    color: colors.white,
-    fontWeight: 'bold',
-  },
+  courseChipText: { color: colors.textSecondary },
+  courseChipTextActive: { color: colors.white, fontWeight: 'bold' },
   tabRow: {
     flexDirection: 'row',
     marginHorizontal: 20,
@@ -416,16 +416,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 6,
   },
-  tabActive: {
-    backgroundColor: colors.primary,
-  },
-  tabText: {
-    color: colors.textSecondary,
-  },
-  tabTextActive: {
-    color: colors.white,
-    fontWeight: 'bold',
-  },
+  tabActive: { backgroundColor: colors.primary },
+  tabText: { color: colors.textSecondary },
+  tabTextActive: { color: colors.white, fontWeight: 'bold' },
   yourRankPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -439,10 +432,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary + '33',
   },
-  yourRankText: {
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
+  yourRankText: { color: colors.primary, fontWeight: 'bold' },
   podium: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -481,10 +471,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  podiumXP: {
-    fontWeight: 'bold',
-    fontSize: 11,
-  },
+  podiumXP: { fontWeight: 'bold', fontSize: 11 },
   podiumBlock: {
     width: '100%',
     borderRadius: 10,
@@ -492,10 +479,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  podiumRank: {
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
+  podiumRank: { fontWeight: 'bold', fontSize: 18 },
   list: {
     paddingHorizontal: 20,
     paddingBottom: 100,
@@ -533,9 +517,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary + '66',
     backgroundColor: colors.primary + '11',
   },
-  itemCardTop: {
-    borderColor: colors.accent + '44',
-  },
+  itemCardTop: { borderColor: colors.accent + '44' },
   rankBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -548,15 +530,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rankText: { fontWeight: 'bold', fontSize: 12 },
-  rankBadgeDefault: {
-    minWidth: 46,
-    alignItems: 'center',
-  },
-  rankTextDefault: {
-    color: colors.textSecondary,
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
+  rankBadgeDefault: { minWidth: 46, alignItems: 'center' },
+  rankTextDefault: { color: colors.textSecondary, fontWeight: 'bold', fontSize: 12 },
   avatarCircle: {
     width: 42,
     height: 42,
@@ -565,19 +540,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   itemInfo: { flex: 1 },
-  itemName: {
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
+  itemName: { color: colors.textPrimary, fontWeight: '600' },
   itemNameSelf: { color: colors.primary },
   itemLevel: { color: colors.textSecondary, marginTop: 2 },
-  itemXP: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  itemXPText: {
-    color: colors.accent,
-    fontWeight: 'bold',
-  },
+  itemXP: { alignItems: 'center', gap: 2 },
+  itemXPText: { color: colors.accent, fontWeight: 'bold' },
   itemXPLabel: { color: colors.textSecondary },
 });
