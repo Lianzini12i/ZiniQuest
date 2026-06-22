@@ -162,7 +162,7 @@ export default function QuizScreen({ route, navigation }) {
     if (passed && isFirstAttempt) {
       xpAwarded += XP_RULES.QUIZ_PASS_FIRST;
       if (perfect) xpAwarded += XP_RULES.QUIZ_PERFECT_BONUS;
-      await awardXP('QUIZ_PASS', quizId, xpAwarded);
+      await awardXP('QUIZ_PASS', quiz.courseId || quizId, xpAwarded, user.uid);
       await triggerBadgeCheck(user.uid);
     }
 

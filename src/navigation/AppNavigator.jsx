@@ -10,6 +10,7 @@ import { subscribeToUserProfile } from "../services/userService";
 import useAuthStore from "../store/authStore";
 import useUserStore from "../store/userStore";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
+import { updateStreak } from '../services/gamificationService';
 import { colors } from "../constants/colors";
 
 import LoginScreen from "../screens/auth/LoginScreen";
@@ -49,6 +50,10 @@ export default function AppNavigator() {
     const unsubscribeProfile = subscribeToUserProfile(user.uid, (data) => {
       const wasNotLevelingUp = !profile?.pendingLevelUp;
       setProfile(data);
+      // Update streak on every app session
+      if (data?.uid) {
+        updateStreak(data.uid);
+      }
       if (data?.pendingLevelUp && wasNotLevelingUp) {
         setTimeout(() => {
           navigationRef.current?.navigate("LevelUp", { level: data.level });

@@ -161,7 +161,7 @@ export default function LessonDetailScreen({ route, navigation }) {
       const xpAmount = xpMap[lesson.difficulty] || XP_RULES.LESSON_BEGINNER;
 
       // Hybrid model — instant local feedback + server sync
-      await awardXP('LESSON_COMPLETE', lessonId, xpAmount);
+      await awardXP('LESSON_COMPLETE', lesson.courseId, xpAmount, user.uid);
       await triggerBadgeCheck(user.uid);
 
       await hapticSuccess();
