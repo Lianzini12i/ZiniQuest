@@ -9,6 +9,8 @@ import {
 import { Text, Surface } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors } from "../../constants/colors";
+import { db } from '../../config/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { getXPProgress } from "../../utils/levelCalc";
 import { getCourseById } from "../../services/lessonService";
 import useAuthStore from "../../store/authStore";
@@ -98,22 +100,28 @@ function StatCard({ icon, value, label, color }) {
   );
 }
 
-function GoalRing({ dailyGoalMins }) {
-  const progress = 0.3;
+function GoalRing({ dailyGoalMins, minsToday }) {
+  const progress  = Math.min(minsToday / dailyGoalMins, 1);
+  const achieved  = progress >= 1;
+  const ringColor = achieved ? colors.success : colors.primary;
+
   return (
     <View style={styles.goalRingContainer}>
-      <View style={[styles.goalRingOuter, { borderColor: colors.primary }]}>
+      <View style={[styles.goalRingOuter, {
+        borderColor: ringColor,
+        backgroundColor: ringColor + '22',
+      }]}>
         <View style={styles.goalRingInner}>
-          <Text variant="titleMedium" style={styles.goalRingValue}>
-            {Math.round(dailyGoalMins * progress)}
+          <Text variant="titleMedium" style={[styles.goalRingValue, { color: ringColor }]}>
+            {minsToday}
           </Text>
           <Text variant="labelSmall" style={styles.goalRingLabel}>
             / {dailyGoalMins}m
           </Text>
         </View>
       </View>
-      <Text variant="labelSmall" style={styles.goalRingTitle}>
-        Daily Goal
+      <Text variant="labelSmall" style={[styles.goalRingTitle, achieved && { color: colors.success }]}>
+        {achieved ? 'Goal Met! 🎉' : 'Daily Goal'}
       </Text>
     </View>
   );
@@ -124,6 +132,50 @@ export default function HomeScreen({ navigation }) {
   const { profile } = useUserStore();
   const [greeting, setGreeting] = useState("");
   const [enrolledCourseTitles, setEnrolledCourseTitles] = useState({});
+  const [minsToday, setMinsToday] = useState(0);
+
+useEffect(() => {
+  if (!user) return;
+  const calcTodayMins = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const snap  = await getDocs(
+        query(
+          collection(db, 'lessonProgress'),
+          where('userId',    '==', user.uid),
+          where('completed', '==', true)
+        )
+      );
+
+      // Count lessons completed today and sum their estimated times
+      const todayLessons = snap.docs.filter(d => {
+        const ts = d.data().completedAt;
+        if (!ts) return false;
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        return date.toISOString().split('T')[0] === today;
+      });
+
+      // Fetch lesson details to get estimatedMins for each
+      const lessonIds = todayLessons.map(d => d.data().lessonId);
+      let totalMins   = 0;
+
+      await Promise.all(
+        lessonIds.map(async (lessonId) => {
+          const { getDoc, doc } = await import('firebase/firestore');
+          const lessonSnap = await getDoc(doc(db, 'lessons', lessonId));
+          if (lessonSnap.exists()) {
+            totalMins += lessonSnap.data().estimatedMins || 5;
+          }
+        })
+      );
+
+      setMinsToday(totalMins);
+    } catch (e) {
+      console.warn('Failed to calc today mins:', e.message);
+    }
+  };
+  calcTodayMins();
+}, [user, profile?.xp]); // Recalculate when XP changes (lesson completed)
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -236,7 +288,7 @@ export default function HomeScreen({ navigation }) {
       {/* Daily Goal + Latest Badge */}
       <View style={styles.goalBadgeRow}>
         <Surface style={styles.goalCard} elevation={2}>
-          <GoalRing dailyGoalMins={profile.dailyGoalMins || 30} />
+          <GoalRing dailyGoalMins={profile.dailyGoalMins || 30} minsToday={minsToday} />
         </Surface>
 
         <Surface style={styles.latestBadgeCard} elevation={2}>
