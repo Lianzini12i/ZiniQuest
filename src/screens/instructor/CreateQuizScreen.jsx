@@ -210,28 +210,41 @@ export default function CreateQuizScreen() {
     if (!validate()) return;
     setSaving(true);
     try {
-      // Strip correctIndex from questions — store separately for security
-      const safeQuestions = questions.map(({ correctIndex, ...rest }) => rest);
-      const correctIndexes = questions.map(q => q.correctIndex);
-
+      // Include correctIndex directly in questions
+      // (Server-side separation will be re-enabled when Cloud Functions are deployed)
       const quizRef = await addDoc(collection(db, 'quizzes'), {
-        title:        title.trim(),
-        lessonId:     selectedLesson.id,
-        courseId:     selectedLesson.courseId,
-        instructorId: user.uid,
-        passMark:     parseInt(passMark) || 60,
-        timerSeconds: parseInt(timerSeconds) || 10,
-        questions:    safeQuestions,
-        published,
-        createdAt:    serverTimestamp(),
-      });
+      title:        title.trim(),
+      lessonId:     selectedLesson.id,
+      courseId:     selectedLesson.courseId,
+      instructorId: user.uid,
+      passMark:     parseInt(passMark) || 60,
+      timerSeconds: parseInt(timerSeconds) || 10,
+      questions,
+      published,
+      createdAt:    serverTimestamp(),
+    });
+      // Strip correctIndex from questions — store separately for security
+      // const safeQuestions = questions.map(({ correctIndex, ...rest }) => rest);
+      // const correctIndexes = questions.map(q => q.correctIndex);
 
-      // Store correct answers in server-only subcollection
-      await addDoc(collection(db, 'quizzes', quizRef.id, 'answers'), {
-        quizId:        quizRef.id,
-        correctIndexes,
-        createdAt:     serverTimestamp(),
-      });
+      // const quizRef = await addDoc(collection(db, 'quizzes'), {
+      //   title:        title.trim(),
+      //   lessonId:     selectedLesson.id,
+      //   courseId:     selectedLesson.courseId,
+      //   instructorId: user.uid,
+      //   passMark:     parseInt(passMark) || 60,
+      //   timerSeconds: parseInt(timerSeconds) || 10,
+      //   questions:    safeQuestions,
+      //   published,
+      //   createdAt:    serverTimestamp(),
+      // });
+
+      // // Store correct answers in server-only subcollection
+      // await addDoc(collection(db, 'quizzes', quizRef.id, 'answers'), {
+      //   quizId:        quizRef.id,
+      //   correctIndexes,
+      //   createdAt:     serverTimestamp(),
+      // });
 
       await hapticSuccess();
       setSaved(true);
