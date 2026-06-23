@@ -9,10 +9,11 @@ import {
 import { Text, Surface } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors } from "../../constants/colors";
-import { db } from '../../config/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from "../../config/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { getXPProgress } from "../../utils/levelCalc";
 import { getCourseById } from "../../services/lessonService";
+import { getLessonById } from "../../services/lessonService";
 import useAuthStore from "../../store/authStore";
 import useUserStore from "../../store/userStore";
 import { logoutUser } from "../../services/authService";
@@ -101,18 +102,26 @@ function StatCard({ icon, value, label, color }) {
 }
 
 function GoalRing({ dailyGoalMins, minsToday }) {
-  const progress  = Math.min(minsToday / dailyGoalMins, 1);
-  const achieved  = progress >= 1;
+  const progress = Math.min(minsToday / dailyGoalMins, 1);
+  const achieved = progress >= 1;
   const ringColor = achieved ? colors.success : colors.primary;
 
   return (
     <View style={styles.goalRingContainer}>
-      <View style={[styles.goalRingOuter, {
-        borderColor: ringColor,
-        backgroundColor: ringColor + '22',
-      }]}>
+      <View
+        style={[
+          styles.goalRingOuter,
+          {
+            borderColor: ringColor,
+            backgroundColor: ringColor + "22",
+          },
+        ]}
+      >
         <View style={styles.goalRingInner}>
-          <Text variant="titleMedium" style={[styles.goalRingValue, { color: ringColor }]}>
+          <Text
+            variant="titleMedium"
+            style={[styles.goalRingValue, { color: ringColor }]}
+          >
             {minsToday}
           </Text>
           <Text variant="labelSmall" style={styles.goalRingLabel}>
@@ -120,8 +129,11 @@ function GoalRing({ dailyGoalMins, minsToday }) {
           </Text>
         </View>
       </View>
-      <Text variant="labelSmall" style={[styles.goalRingTitle, achieved && { color: colors.success }]}>
-        {achieved ? 'Goal Met! 🎉' : 'Daily Goal'}
+      <Text
+        variant="labelSmall"
+        style={[styles.goalRingTitle, achieved && { color: colors.success }]}
+      >
+        {achieved ? "Goal Met! 🎉" : "Daily Goal"}
       </Text>
     </View>
   );
@@ -133,49 +145,88 @@ export default function HomeScreen({ navigation }) {
   const [greeting, setGreeting] = useState("");
   const [enrolledCourseTitles, setEnrolledCourseTitles] = useState({});
   const [minsToday, setMinsToday] = useState(0);
+  const [lastLesson, setLastLesson] = useState(null);
 
-useEffect(() => {
-  if (!user) return;
-  const calcTodayMins = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const snap  = await getDocs(
-        query(
-          collection(db, 'lessonProgress'),
-          where('userId',    '==', user.uid),
-          where('completed', '==', true)
-        )
-      );
+  useEffect(() => {
+    if (!user) return;
+    const fetchLastLesson = async () => {
+      try {
+        const snap = await getDocs(
+          query(
+            collection(db, "lessonProgress"),
+            where("userId", "==", user.uid),
+            where("completed", "==", true),
+          ),
+        );
+        if (snap.empty) return;
 
-      // Count lessons completed today and sum their estimated times
-      const todayLessons = snap.docs.filter(d => {
-        const ts = d.data().completedAt;
-        if (!ts) return false;
-        const date = ts.toDate ? ts.toDate() : new Date(ts);
-        return date.toISOString().split('T')[0] === today;
-      });
+        // Get most recently completed lesson
+        const sorted = snap.docs
+          .map((d) => d.data())
+          .filter((d) => d.completedAt)
+          .sort((a, b) => {
+            const aTime = a.completedAt?.toDate
+              ? a.completedAt.toDate()
+              : new Date(0);
+            const bTime = b.completedAt?.toDate
+              ? b.completedAt.toDate()
+              : new Date(0);
+            return bTime - aTime;
+          });
 
-      // Fetch lesson details to get estimatedMins for each
-      const lessonIds = todayLessons.map(d => d.data().lessonId);
-      let totalMins   = 0;
+        if (sorted.length === 0) return;
 
-      await Promise.all(
-        lessonIds.map(async (lessonId) => {
-          const { getDoc, doc } = await import('firebase/firestore');
-          const lessonSnap = await getDoc(doc(db, 'lessons', lessonId));
-          if (lessonSnap.exists()) {
-            totalMins += lessonSnap.data().estimatedMins || 5;
-          }
-        })
-      );
+        const lesson = await getLessonById(sorted[0].lessonId);
+        if (lesson) setLastLesson(lesson);
+      } catch (e) {
+        console.warn("Failed to fetch last lesson:", e.message);
+      }
+    };
+    fetchLastLesson();
+  }, [user, profile?.xp]);
 
-      setMinsToday(totalMins);
-    } catch (e) {
-      console.warn('Failed to calc today mins:', e.message);
-    }
-  };
-  calcTodayMins();
-}, [user, profile?.xp]); // Recalculate when XP changes (lesson completed)
+  useEffect(() => {
+    if (!user) return;
+    const calcTodayMins = async () => {
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const snap = await getDocs(
+          query(
+            collection(db, "lessonProgress"),
+            where("userId", "==", user.uid),
+            where("completed", "==", true),
+          ),
+        );
+
+        // Count lessons completed today and sum their estimated times
+        const todayLessons = snap.docs.filter((d) => {
+          const ts = d.data().completedAt;
+          if (!ts) return false;
+          const date = ts.toDate ? ts.toDate() : new Date(ts);
+          return date.toISOString().split("T")[0] === today;
+        });
+
+        // Fetch lesson details to get estimatedMins for each
+        const lessonIds = todayLessons.map((d) => d.data().lessonId);
+        let totalMins = 0;
+
+        await Promise.all(
+          lessonIds.map(async (lessonId) => {
+            const { getDoc, doc } = await import("firebase/firestore");
+            const lessonSnap = await getDoc(doc(db, "lessons", lessonId));
+            if (lessonSnap.exists()) {
+              totalMins += lessonSnap.data().estimatedMins || 5;
+            }
+          }),
+        );
+
+        setMinsToday(totalMins);
+      } catch (e) {
+        console.warn("Failed to calc today mins:", e.message);
+      }
+    };
+    calcTodayMins();
+  }, [user, profile?.xp]); // Recalculate when XP changes (lesson completed)
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -288,7 +339,10 @@ useEffect(() => {
       {/* Daily Goal + Latest Badge */}
       <View style={styles.goalBadgeRow}>
         <Surface style={styles.goalCard} elevation={2}>
-          <GoalRing dailyGoalMins={profile.dailyGoalMins || 30} minsToday={minsToday} />
+          <GoalRing
+            dailyGoalMins={profile.dailyGoalMins || 30}
+            minsToday={minsToday}
+          />
         </Surface>
 
         <Surface style={styles.latestBadgeCard} elevation={2}>
@@ -324,6 +378,123 @@ useEffect(() => {
         </Surface>
       </View>
 
+      {/* Resume card */}
+      {lastLesson && (
+        <>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Continue Learning
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("Learn", {
+                screen: "LessonDetail",
+                params: {
+                  lessonId: lastLesson.id,
+                  lessonTitle: lastLesson.title,
+                },
+              })
+            }
+            activeOpacity={0.8}
+          >
+            <Surface style={styles.resumeCard} elevation={2}>
+              <View
+                style={[
+                  styles.resumeIconBg,
+                  {
+                    backgroundColor:
+                      lastLesson.difficulty === "beginner"
+                        ? colors.success + "22"
+                        : lastLesson.difficulty === "intermediate"
+                          ? colors.accent + "22"
+                          : colors.error + "22",
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="book-open-variant"
+                  size={28}
+                  color={
+                    lastLesson.difficulty === "beginner"
+                      ? colors.success
+                      : lastLesson.difficulty === "intermediate"
+                        ? colors.accent
+                        : colors.error
+                  }
+                />
+              </View>
+              <View style={styles.resumeInfo}>
+                <Text variant="labelSmall" style={styles.resumeLabel}>
+                  CONTINUE WHERE YOU LEFT OFF
+                </Text>
+                <Text
+                  variant="titleSmall"
+                  style={styles.resumeTitle}
+                  numberOfLines={2}
+                >
+                  {lastLesson.title}
+                </Text>
+                <View style={styles.resumeMeta}>
+                  <View
+                    style={[
+                      styles.resumeDiffTag,
+                      {
+                        backgroundColor:
+                          lastLesson.difficulty === "beginner"
+                            ? colors.success + "22"
+                            : lastLesson.difficulty === "intermediate"
+                              ? colors.accent + "22"
+                              : colors.error + "22",
+                      },
+                    ]}
+                  >
+                    <Text
+                      variant="labelSmall"
+                      style={{
+                        color:
+                          lastLesson.difficulty === "beginner"
+                            ? colors.success
+                            : lastLesson.difficulty === "intermediate"
+                              ? colors.accent
+                              : colors.error,
+                        fontWeight: "bold",
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {lastLesson.difficulty}
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="clock-outline"
+                    size={12}
+                    color={colors.textSecondary}
+                  />
+                  <Text variant="labelSmall" style={styles.resumeMetaText}>
+                    {lastLesson.estimatedMins} min
+                  </Text>
+                  <MaterialCommunityIcons
+                    name="lightning-bolt"
+                    size={12}
+                    color={colors.accent}
+                  />
+                  <Text
+                    variant="labelSmall"
+                    style={[styles.resumeMetaText, { color: colors.accent }]}
+                  >
+                    +{lastLesson.xpReward} XP
+                  </Text>
+                </View>
+              </View>
+              <MaterialCommunityIcons
+                name="play-circle"
+                size={32}
+                color={colors.primary}
+              />
+            </Surface>
+          </TouchableOpacity>
+        </>
+      )}
       {/* My Courses */}
       <View style={styles.sectionHeader}>
         <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -594,4 +765,49 @@ const styles = StyleSheet.create({
     borderColor: colors.primary + "44",
   },
   interestText: { color: colors.primary, fontWeight: "bold" },
+  resumeCard: {
+  backgroundColor: colors.card,
+  borderRadius: 16,
+  padding: 14,
+  marginBottom: 24,
+  borderWidth: 1,
+  borderColor: colors.border,
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 12,
+},
+resumeIconBg: {
+  width: 52,
+  height: 52,
+  borderRadius: 14,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+resumeInfo: {
+  flex: 1,
+  gap: 4,
+},
+resumeLabel: {
+  color: colors.textSecondary,
+  letterSpacing: 0.5,
+},
+resumeTitle: {
+  color: colors.textPrimary,
+  fontWeight: 'bold',
+  lineHeight: 18,
+},
+resumeMeta: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 6,
+  flexWrap: 'wrap',
+},
+resumeDiffTag: {
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  borderRadius: 4,
+},
+resumeMetaText: {
+  color: colors.textSecondary,
+},
 });
