@@ -248,11 +248,12 @@ export async function awardXP(actionType, contextId, xpAmount, uid) {
 export async function triggerBadgeCheck(uid) {
   const newBadges = await checkBadgesLocally(uid);
 
-  for (const badgeId of newBadges) {
-    useUserStore.getState().addBadgeLocally(badgeId);
-    await playSound('badge-unlock');
-    await hapticHeavy();
-  }
+for (const badgeId of newBadges) {
+  useUserStore.getState().addBadgeLocally(badgeId);
+  useUserStore.getState().setPendingBadgeModal(badgeId);
+  // Small delay between badges if multiple unlocked
+  await new Promise(r => setTimeout(r, 300));
+}
 
   // Also try Cloud Function (if Blaze ever activated)
   try {
