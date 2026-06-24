@@ -9,7 +9,13 @@ import {
 import { Text, Surface, ActivityIndicator } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
-import { getCourseById, getModulesByCourse, getLessonsByModule, getCompletedLessons } from '../../services/lessonService';
+import {
+  getCourseById,
+  getModulesByCourse,
+  getLessonsByModule,
+  getCompletedLessons,
+  getLessonById,
+} from '../../services/lessonService';
 import useAuthStore from '../../store/authStore';
 
 const SUBJECT_COLORS = {
@@ -44,8 +50,11 @@ function ProgressRing({ progress, size = 64, color = colors.primary }) {
   const filled = Math.round(progress * 100);
   return (
     <View style={[styles.progressRing, {
-      width: size, height: size, borderRadius: size / 2,
-      borderColor: color, borderWidth: 5,
+      width:       size,
+      height:      size,
+      borderRadius: size / 2,
+      borderColor: color,
+      borderWidth: 5,
       backgroundColor: color + '22',
     }]}>
       <Text style={[styles.progressRingText, { color }]}>{filled}%</Text>
@@ -67,8 +76,11 @@ function LessonRow({ lesson, completed, onPress }) {
         />
       </View>
       <View style={styles.lessonRowInfo}>
-        <Text variant="bodyMedium" style={[styles.lessonTitle, completed && styles.lessonTitleDone]}
-          numberOfLines={1}>
+        <Text
+          variant="bodyMedium"
+          style={[styles.lessonTitle, completed && styles.lessonTitleDone]}
+          numberOfLines={1}
+        >
           {lesson.title}
         </Text>
         <View style={styles.lessonMeta}>
@@ -87,11 +99,7 @@ function LessonRow({ lesson, completed, onPress }) {
           </Text>
         </View>
       </View>
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={20}
-        color={colors.textSecondary}
-      />
+      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 }
@@ -99,12 +107,11 @@ function LessonRow({ lesson, completed, onPress }) {
 function ModuleAccordion({ module, lessons, completedLessons, onLessonPress, subjectColor }) {
   const [expanded, setExpanded] = useState(true);
   const completedCount = lessons.filter(l => completedLessons.includes(l.id)).length;
-  const progress = lessons.length > 0 ? completedCount / lessons.length : 0;
-  const allDone = completedCount === lessons.length && lessons.length > 0;
+  const progress       = lessons.length > 0 ? completedCount / lessons.length : 0;
+  const allDone        = completedCount === lessons.length && lessons.length > 0;
 
   return (
     <Surface style={styles.moduleCard} elevation={2}>
-      {/* Module header */}
       <TouchableOpacity
         style={styles.moduleHeader}
         onPress={() => setExpanded(!expanded)}
@@ -140,7 +147,6 @@ function ModuleAccordion({ module, lessons, completedLessons, onLessonPress, sub
         </View>
       </TouchableOpacity>
 
-      {/* Lessons list */}
       {expanded && (
         <View style={styles.lessonsList}>
           {lessons.length === 0 ? (
@@ -166,15 +172,16 @@ function ModuleAccordion({ module, lessons, completedLessons, onLessonPress, sub
 }
 
 export default function MyCourseScreen({ route, navigation }) {
-  const { courseId, courseTitle } = route.params;
+  const { courseId, courseTitle, initialLessonId } = route.params;
   const { user } = useAuthStore();
 
-  const [course, setCourse]                 = useState(null);
-  const [modules, setModules]               = useState([]);
+  const [course, setCourse]                   = useState(null);
+  const [modules, setModules]                 = useState([]);
   const [lessonsByModule, setLessonsByModule] = useState({});
   const [completedLessons, setCompletedLessons] = useState([]);
-  const [loading, setLoading]               = useState(true);
-  const [refreshing, setRefreshing]         = useState(false);
+  const [loading, setLoading]                 = useState(true);
+  const [refreshing, setRefreshing]           = useState(false);
+  const [dataLoaded, setDataLoaded]           = useState(false);
 
   const loadData = async () => {
     try {
@@ -196,6 +203,7 @@ export default function MyCourseScreen({ route, navigation }) {
         })
       );
       setLessonsByModule(lessonsMap);
+      setDataLoaded(true);
     } catch (e) {
       console.warn('Failed to load course data:', e.message);
     } finally {
@@ -206,6 +214,25 @@ export default function MyCourseScreen({ route, navigation }) {
 
   useEffect(() => { loadData(); }, []);
 
+  // Auto-navigate to initialLessonId if coming from resume card
+  useEffect(() => {
+    if (!dataLoaded || !initialLessonId) return;
+    const navigate = async () => {
+      try {
+        const lesson = await getLessonById(initialLessonId);
+        if (lesson) {
+          navigation.navigate('LessonDetail', {
+            lessonId:    lesson.id,
+            lessonTitle: lesson.title,
+          });
+        }
+      } catch (e) {
+        console.warn('Auto-navigate to lesson failed:', e.message);
+      }
+    };
+    navigate();
+  }, [dataLoaded, initialLessonId]);
+
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
@@ -213,7 +240,7 @@ export default function MyCourseScreen({ route, navigation }) {
 
   const handleLessonPress = (lesson) => {
     navigation.navigate('LessonDetail', {
-      lessonId: lesson.id,
+      lessonId:    lesson.id,
       lessonTitle: lesson.title,
     });
   };
@@ -230,8 +257,8 @@ export default function MyCourseScreen({ route, navigation }) {
   const subjectColor = SUBJECT_COLORS[course?.subject] || colors.primary;
   const subjectIcon  = SUBJECT_ICONS[course?.subject]  || 'book';
 
-  const totalLessons    = Object.values(lessonsByModule).flat().length;
-  const totalCompleted  = Object.values(lessonsByModule).flat()
+  const totalLessons   = Object.values(lessonsByModule).flat().length;
+  const totalCompleted = Object.values(lessonsByModule).flat()
     .filter(l => completedLessons.includes(l.id)).length;
   const overallProgress = totalLessons > 0 ? totalCompleted / totalLessons : 0;
 
@@ -241,7 +268,11 @@ export default function MyCourseScreen({ route, navigation }) {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+        />
       }
     >
       {/* Back button */}
@@ -274,7 +305,6 @@ export default function MyCourseScreen({ route, navigation }) {
           </Text>
         )}
 
-        {/* Stats row */}
         <View style={styles.courseStatsRow}>
           <View style={styles.courseStat}>
             <MaterialCommunityIcons name="book-multiple" size={16} color={subjectColor} />
@@ -296,10 +326,9 @@ export default function MyCourseScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Overall progress bar */}
         <View style={styles.overallProgressBar}>
           <View style={[styles.overallProgressFill, {
-            width: `${overallProgress * 100}%`,
+            width:           `${overallProgress * 100}%`,
             backgroundColor: subjectColor,
           }]} />
         </View>
@@ -314,9 +343,7 @@ export default function MyCourseScreen({ route, navigation }) {
       {modules.length === 0 ? (
         <Surface style={styles.emptyCard} elevation={1}>
           <MaterialCommunityIcons name="book-off" size={40} color={colors.textSecondary} />
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            No modules available yet
-          </Text>
+          <Text variant="bodyMedium" style={styles.emptyText}>No modules available yet</Text>
         </Surface>
       ) : (
         modules.map((mod) => (
@@ -337,33 +364,12 @@ export default function MyCourseScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  centred: {
-    flex: 1,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    color: colors.textSecondary,
-  },
+  container:   { flex: 1, backgroundColor: colors.background },
+  content:     { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+  centred:     { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { color: colors.textSecondary },
+  backBtn:     { marginBottom: 16, alignSelf: 'flex-start' },
 
-  // Back button
-  backBtn: {
-    marginBottom: 16,
-    alignSelf: 'flex-start',
-  },
-
-  // Course header card
   courseHeader: {
     backgroundColor: colors.card,
     borderRadius: 20,
@@ -372,86 +378,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 12,
   },
-  courseHeaderTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  courseIconBg: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  courseHeaderInfo: {
-    flex: 1,
-    gap: 6,
-  },
-  subjectTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  subjectTagText: {
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  courseTitle: {
-    color: colors.textPrimary,
-    fontWeight: 'bold',
-  },
-  courseDesc: {
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  courseStatsRow: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  courseStat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  courseStatText: {
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  overallProgressBar: {
-    height: 8,
-    backgroundColor: colors.border,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  overallProgressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressLabel: {
-    color: colors.textSecondary,
-    textAlign: 'right',
-  },
+  courseHeaderTop:  { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  courseIconBg:     { width: 52, height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  courseHeaderInfo: { flex: 1, gap: 6 },
+  subjectTag:       { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  subjectTagText:   { fontWeight: 'bold', letterSpacing: 0.5 },
+  courseTitle:      { color: colors.textPrimary, fontWeight: 'bold' },
+  courseDesc:       { color: colors.textSecondary, lineHeight: 18 },
+  courseStatsRow:   { flexDirection: 'row', gap: 16 },
+  courseStat:       { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  courseStatText:   { color: colors.textSecondary, fontWeight: '600' },
+  overallProgressBar: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
+  overallProgressFill: { height: '100%', borderRadius: 4 },
+  progressLabel:    { color: colors.textSecondary, textAlign: 'right' },
 
-  // Progress ring
-  progressRing: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressRingText: {
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
+  progressRing:     { justifyContent: 'center', alignItems: 'center' },
+  progressRingText: { fontWeight: 'bold', fontSize: 13 },
 
-  // Modules section
-  modulesHeading: {
-    color: colors.textPrimary,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
+  modulesHeading: { color: colors.textPrimary, fontWeight: 'bold', marginBottom: 12 },
 
-  // Module card
   moduleCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
@@ -460,107 +405,29 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     overflow: 'hidden',
   },
-  moduleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    gap: 12,
-  },
-  moduleIconBg: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  moduleHeaderInfo: {
-    flex: 1,
-    gap: 3,
-  },
-  moduleTitle: {
-    color: colors.textPrimary,
-    fontWeight: 'bold',
-  },
-  moduleProgress: {
-    color: colors.textSecondary,
-  },
-  moduleHeaderRight: {
-    alignItems: 'flex-end',
-    gap: 6,
-  },
-  moduleProgressBar: {
-    width: 60,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  moduleProgressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
+  moduleHeader:      { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  moduleIconBg:      { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  moduleHeaderInfo:  { flex: 1, gap: 3 },
+  moduleTitle:       { color: colors.textPrimary, fontWeight: 'bold' },
+  moduleProgress:    { color: colors.textSecondary },
+  moduleHeaderRight: { alignItems: 'flex-end', gap: 6 },
+  moduleProgressBar: { width: 60, height: 4, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' },
+  moduleProgressFill:{ height: '100%', borderRadius: 2 },
 
-  // Lessons list
-  lessonsList: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  noLessons: {
-    color: colors.textSecondary,
-    padding: 16,
-    textAlign: 'center',
-  },
-  lessonDivider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginHorizontal: 14,
-  },
+  lessonsList:  { borderTopWidth: 1, borderTopColor: colors.border },
+  noLessons:    { color: colors.textSecondary, padding: 16, textAlign: 'center' },
+  lessonDivider:{ height: 1, backgroundColor: colors.border, marginHorizontal: 14 },
 
-  // Lesson row
-  lessonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    gap: 12,
-  },
-  lessonStatusIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lessonRowInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  lessonTitle: {
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  lessonTitleDone: {
-    color: colors.textSecondary,
-    textDecorationLine: 'line-through',
-  },
-  lessonMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  diffTag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  diffTagText: {
-    fontWeight: 'bold',
-    textTransform: 'capitalize',
-  },
-  lessonMetaText: {
-    color: colors.textSecondary,
-  },
+  lessonRow:        { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  lessonStatusIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  lessonRowInfo:    { flex: 1, gap: 4 },
+  lessonTitle:      { color: colors.textPrimary, fontWeight: '600' },
+  lessonTitleDone:  { color: colors.textSecondary, textDecorationLine: 'line-through' },
+  lessonMeta:       { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  diffTag:          { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  diffTagText:      { fontWeight: 'bold', textTransform: 'capitalize' },
+  lessonMetaText:   { color: colors.textSecondary },
 
-  // Empty state
   emptyCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
@@ -570,8 +437,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  emptyText: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
+  emptyText: { color: colors.textSecondary, textAlign: 'center' },
 });
