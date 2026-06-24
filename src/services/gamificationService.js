@@ -6,6 +6,7 @@ import {
   increment,
   getDoc,
 } from 'firebase/firestore';
+import BadgeUnlockModal from '../components/BadgeUnlockModal';
 import useUserStore from '../store/userStore';
 import { playSound } from '../utils/soundPlayer';
 import { hapticSuccess, hapticHeavy } from '../utils/haptics';

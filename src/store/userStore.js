@@ -3,6 +3,7 @@ import { create } from 'zustand';
 const useUserStore = create((set, get) => ({
   profile: null,
   isLoadingProfile: false,
+  pendingBadgeModal: null,
 
   setProfile: (profile) => set({ profile }),
   clearProfile: () => set({ profile: null }),
@@ -23,6 +24,8 @@ const useUserStore = create((set, get) => ({
   },
 
   setLoadingProfile: (val) => set({ isLoadingProfile: val }),
+  setPendingBadgeModal: (badgeId) => set({ pendingBadgeModal: badgeId }),
+  clearPendingBadgeModal: () => set({ pendingBadgeModal: null }),
 }));
 
 export default useUserStore;
