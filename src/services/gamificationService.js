@@ -88,22 +88,14 @@ async function awardXPLocally(uid, xpAmount) {
     const newLevel   = getLevelFromXP(newXP);
     const leveledUp  = newLevel.level > currentLvl;
 
+    // Write to Firestore — this triggers the real-time listener
+    // which updates the profile in the store automatically
     await updateDoc(userRef, {
       xp:             newXP,
       level:          newLevel.level,
       pendingLevelUp: leveledUp,
     });
 
-    // Update local store immediately
-    const profile = useUserStore.getState().profile;
-    if (profile) {
-      useUserStore.getState().setProfile({
-        ...profile,
-        xp:             newXP,
-        level:          newLevel.level,
-        pendingLevelUp: leveledUp,
-      });
-    }
   } catch (e) {
     console.warn('Local XP award failed:', e.message);
   }
