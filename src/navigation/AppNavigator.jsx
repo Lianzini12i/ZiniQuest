@@ -42,26 +42,25 @@ export default function AppNavigator() {
   // Subscribe to real-time profile updates when user is logged in
   const navigationRef = useRef(null);
 
-  useEffect(() => {
-    if (!user) {
-      setProfile(null);
-      return;
+useEffect(() => {
+  if (!user) {
+    setProfile(null);
+    return;
+  }
+  const unsubscribeProfile = subscribeToUserProfile(user.uid, (data) => {
+    const wasNotLevelingUp = !profile?.pendingLevelUp;
+    setProfile(data); // This always overwrites with real Firestore XP
+    if (data?.uid) {
+      updateStreak(data.uid);
     }
-    const unsubscribeProfile = subscribeToUserProfile(user.uid, (data) => {
-      const wasNotLevelingUp = !profile?.pendingLevelUp;
-      setProfile(data);
-      // Update streak on every app session
-      if (data?.uid) {
-        updateStreak(data.uid);
-      }
-      if (data?.pendingLevelUp && wasNotLevelingUp) {
-        setTimeout(() => {
-          navigationRef.current?.navigate("LevelUp", { level: data.level });
-        }, 500);
-      }
-    });
-    return unsubscribeProfile;
-  }, [user]);
+    if (data?.pendingLevelUp && wasNotLevelingUp) {
+      setTimeout(() => {
+        navigationRef.current?.navigate('LevelUp', { level: data.level });
+      }, 500);
+    }
+  });
+  return unsubscribeProfile;
+}, [user]);
 
   if (isLoading) {
     return (
