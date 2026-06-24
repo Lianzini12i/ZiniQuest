@@ -1,26 +1,26 @@
 import { create } from 'zustand';
 
 const useUserStore = create((set, get) => ({
-  profile: null,
-  isLoadingProfile: false,
-  pendingBadgeModal: null,
+  profile:              null,
+  isLoadingProfile:     false,
+  pendingBadgeModal:    null,
 
   setProfile: (profile) => set({ profile }),
   clearProfile: () => set({ profile: null }),
 
-  // Optimistic local XP update (Hybrid Gamification Model)
-  // Cloud Function remains the source of truth in Firestore
+  // Local XP add — only used for instant visual feedback
+  // Real value always comes from Firestore via subscribeToUserProfile
   addXPLocally: (amount) => {
     const profile = get().profile;
     if (!profile) return;
-    set({ profile: { ...profile, xp: profile.xp + amount } });
+    set({ profile: { ...profile, xp: (profile.xp || 0) + amount } });
   },
 
   addBadgeLocally: (badgeId) => {
     const profile = get().profile;
     if (!profile) return;
-    if (profile.badges.includes(badgeId)) return;
-    set({ profile: { ...profile, badges: [...profile.badges, badgeId] } });
+    if ((profile.badges || []).includes(badgeId)) return;
+    set({ profile: { ...profile, badges: [...(profile.badges || []), badgeId] } });
   },
 
   setLoadingProfile: (val) => set({ isLoadingProfile: val }),
