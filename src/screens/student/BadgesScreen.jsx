@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
+  Image,
 } from 'react-native';
 import { Text, Surface } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,6 +15,22 @@ import useUserStore from '../../store/userStore';
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 48 - 24) / 3;
+
+// ── Badge image map ───────────────────────────────────────────
+const BADGE_IMAGES = {
+  first_step:       require('../../../assets/badges/badge_first_step.webp'),
+  quiz_crusher:     require('../../../assets/badges/badge_quiz_crusher.webp'),
+  perfectionist:    require('../../../assets/badges/badge_perfectionist.webp'),
+  on_fire:          require('../../../assets/badges/badge_on_fire.webp'),
+  unstoppable:      require('../../../assets/badges/badge_unstoppable.webp'),
+  speed_learner:    require('../../../assets/badges/badge_speed_learner.webp'),
+  module_master:    require('../../../assets/badges/badge_module_master.webp'),
+  course_champion:  require('../../../assets/badges/badge_course_champion.webp'),
+  early_bird:       require('../../../assets/badges/badge_early_bird.webp'),
+  night_owl:        require('../../../assets/badges/badge_night_owl.webp'),
+  top_10:           require('../../../assets/badges/badge_top_10.webp'),
+  code_veteran:     require('../../../assets/badges/badge_code_veteran.webp'),
+};
 
 const ALL_BADGES = [
   {
@@ -114,7 +131,10 @@ const ALL_BADGES = [
   },
 ];
 
+// ── Badge Card ────────────────────────────────────────────────
 function BadgeCard({ badge, earned, onPress }) {
+  const badgeImage = BADGE_IMAGES[badge.id];
+
   return (
     <TouchableOpacity
       style={[styles.badgeCard, earned && styles.badgeCardEarned]}
@@ -124,16 +144,24 @@ function BadgeCard({ badge, earned, onPress }) {
       <View style={[styles.badgeIconBg, {
         backgroundColor: earned ? badge.color + '22' : colors.border + '44',
       }]}>
-        <MaterialCommunityIcons
-          name={badge.icon}
-          size={32}
-          color={earned ? badge.color : colors.textSecondary}
-          style={!earned && styles.lockedIcon}
-        />
-        {!earned && (
-          <View style={styles.lockOverlay}>
-            <MaterialCommunityIcons name="lock" size={14} color={colors.textSecondary} />
-          </View>
+        {earned && badgeImage ? (
+          <Image
+            source={badgeImage}
+            style={styles.badgeImage}
+            resizeMode="contain"
+          />
+        ) : (
+          <>
+            <MaterialCommunityIcons
+              name={badge.icon}
+              size={32}
+              color={colors.textSecondary}
+              style={styles.lockedIcon}
+            />
+            <View style={styles.lockOverlay}>
+              <MaterialCommunityIcons name="lock" size={14} color={colors.textSecondary} />
+            </View>
+          </>
         )}
       </View>
       <Text
@@ -150,8 +178,11 @@ function BadgeCard({ badge, earned, onPress }) {
   );
 }
 
+// ── Badge Modal ───────────────────────────────────────────────
 function BadgeModal({ badge, earned, visible, onClose }) {
   if (!badge) return null;
+  const badgeImage = BADGE_IMAGES[badge.id];
+
   return (
     <Modal
       visible={visible}
@@ -165,15 +196,23 @@ function BadgeModal({ badge, earned, visible, onClose }) {
         onPress={onClose}
       >
         <Surface style={styles.modalCard} elevation={5}>
-          {/* Badge icon */}
+          {/* Badge image or icon */}
           <View style={[styles.modalIconBg, {
             backgroundColor: earned ? badge.color + '22' : colors.border,
           }]}>
-            <MaterialCommunityIcons
-              name={badge.icon}
-              size={64}
-              color={earned ? badge.color : colors.textSecondary}
-            />
+            {earned && badgeImage ? (
+              <Image
+                source={badgeImage}
+                style={styles.modalBadgeImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name={badge.icon}
+                size={64}
+                color={colors.textSecondary}
+              />
+            )}
           </View>
 
           {/* Status chip */}
@@ -213,6 +252,7 @@ function BadgeModal({ badge, earned, visible, onClose }) {
   );
 }
 
+// ── Main Screen ───────────────────────────────────────────────
 export default function BadgesScreen() {
   const { profile } = useUserStore();
   const [selectedBadge, setSelectedBadge] = useState(null);
@@ -325,8 +365,6 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
   },
-
-  // Header
   header: { marginBottom: 20 },
   headerTitle: {
     color: colors.textPrimary,
@@ -336,8 +374,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-
-  // Summary card
   summaryCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
@@ -355,9 +391,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     lineHeight: 48,
   },
-  summaryLabel: {
-    color: colors.textSecondary,
-  },
+  summaryLabel: { color: colors.textSecondary },
   summaryRight: { flex: 1, gap: 8 },
   summaryTrack: {
     height: 10,
@@ -374,8 +408,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'right',
   },
-
-  // Section headers
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -386,8 +418,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: 'bold',
   },
-
-  // Badge grid
   badgeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -415,6 +445,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
+  badgeImage: {
+    width: 52,
+    height: 52,
+  },
   lockedIcon: { opacity: 0.4 },
   lockOverlay: {
     position: 'absolute',
@@ -436,8 +470,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
@@ -462,6 +494,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
+  },
+  modalBadgeImage: {
+    width: 90,
+    height: 90,
   },
   statusChip: {
     flexDirection: 'row',
