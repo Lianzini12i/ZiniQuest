@@ -6,6 +6,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Modal,
+  Image,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,6 +15,22 @@ import { playSound } from '../utils/soundPlayer';
 import { hapticHeavy } from '../utils/haptics';
 
 const { width, height } = Dimensions.get('window');
+
+// ── Badge image map ───────────────────────────────────────────
+const BADGE_IMAGES = {
+  first_step:       require('../../assets/badges/badge_first_step.webp'),
+  quiz_crusher:     require('../../assets/badges/badge_quiz_crusher.webp'),
+  perfectionist:    require('../../assets/badges/badge_perfectionist.webp'),
+  on_fire:          require('../../assets/badges/badge_on_fire.webp'),
+  unstoppable:      require('../../assets/badges/badge_unstoppable.webp'),
+  speed_learner:    require('../../assets/badges/badge_speed_learner.webp'),
+  module_master:    require('../../assets/badges/badge_module_master.webp'),
+  course_champion:  require('../../assets/badges/badge_course_champion.webp'),
+  early_bird:       require('../../assets/badges/badge_early_bird.webp'),
+  night_owl:        require('../../assets/badges/badge_night_owl.webp'),
+  top_10:           require('../../assets/badges/badge_top_10.webp'),
+  code_veteran:     require('../../assets/badges/badge_code_veteran.webp'),
+};
 
 const BADGE_META = {
   first_step:      { icon: 'shoe-print',        color: colors.primary,  name: 'First Step' },
@@ -46,11 +63,11 @@ const BADGE_DESCRIPTIONS = {
 };
 
 function Particle({ delay, color }) {
-  const anim  = useRef(new Animated.Value(0)).current;
-  const x     = (Math.random() - 0.5) * width * 1.4;
-  const y     = -(Math.random() * height * 0.7 + 100);
-  const rot   = Math.random() * 720 - 360;
-  const size  = Math.random() * 8 + 4;
+  const anim = useRef(new Animated.Value(0)).current;
+  const x    = (Math.random() - 0.5) * width * 1.4;
+  const y    = -(Math.random() * height * 0.7 + 100);
+  const rot  = Math.random() * 720 - 360;
+  const size = Math.random() * 8 + 4;
 
   useEffect(() => {
     Animated.sequence([
@@ -61,9 +78,9 @@ function Particle({ delay, color }) {
 
   return (
     <Animated.View style={{
-      position:  'absolute',
-      width:     size,
-      height:    size,
+      position:     'absolute',
+      width:        size,
+      height:       size,
       borderRadius: size / 2,
       backgroundColor: color,
       transform: [
@@ -83,8 +100,9 @@ export default function BadgeUnlockModal({ badgeId, visible, onDismiss }) {
   const bounceAnim = useRef(new Animated.Value(0)).current;
   const glowAnim   = useRef(new Animated.Value(0)).current;
 
-  const badge = BADGE_META[badgeId];
-  const desc  = BADGE_DESCRIPTIONS[badgeId];
+  const badge      = BADGE_META[badgeId];
+  const desc       = BADGE_DESCRIPTIONS[badgeId];
+  const badgeImage = BADGE_IMAGES[badgeId];
 
   const PARTICLE_COLORS = [
     badge?.color || colors.primary,
@@ -117,7 +135,6 @@ export default function BadgeUnlockModal({ badgeId, visible, onDismiss }) {
         }),
       ]).start();
 
-      // Bounce loop on the icon
       Animated.loop(
         Animated.sequence([
           Animated.timing(bounceAnim, { toValue: -12, duration: 400, useNativeDriver: true }),
@@ -125,7 +142,6 @@ export default function BadgeUnlockModal({ badgeId, visible, onDismiss }) {
         ])
       ).start();
 
-      // Glow pulse
       Animated.loop(
         Animated.sequence([
           Animated.timing(glowAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
@@ -134,7 +150,6 @@ export default function BadgeUnlockModal({ badgeId, visible, onDismiss }) {
       ).start();
     };
 
-    // Reset animations
     scaleAnim.setValue(0);
     fadeAnim.setValue(0);
     bounceAnim.setValue(0);
@@ -142,8 +157,8 @@ export default function BadgeUnlockModal({ badgeId, visible, onDismiss }) {
 
     init();
 
-    // Auto-dismiss after 5 seconds
-    const timer = setTimeout(onDismiss, 5000);
+    // ── Extended to 7 seconds ────────────────────────────────
+    const timer = setTimeout(onDismiss, 7000);
     return () => clearTimeout(timer);
   }, [visible, badgeId]);
 
@@ -162,14 +177,12 @@ export default function BadgeUnlockModal({ badgeId, visible, onDismiss }) {
         activeOpacity={1}
         onPress={onDismiss}
       >
-        {/* Particles */}
         <View style={styles.particleContainer} pointerEvents="none">
           {particles.map(p => (
             <Particle key={p.id} delay={p.delay} color={p.color} />
           ))}
         </View>
 
-        {/* Card */}
         <Animated.View style={[styles.card, {
           opacity:   fadeAnim,
           transform: [{ scale: scaleAnim }],
@@ -195,32 +208,39 @@ export default function BadgeUnlockModal({ badgeId, visible, onDismiss }) {
             </Text>
           </View>
 
-          {/* Badge icon */}
+          {/* Badge image — webp if available, icon fallback */}
           <Animated.View style={[styles.iconCircle, {
             backgroundColor: badge.color + '22',
             borderColor:     badge.color,
             transform: [{ translateY: bounceAnim }],
           }]}>
-            <MaterialCommunityIcons
-              name={badge.icon}
-              size={64}
-              color={badge.color}
-            />
+            {badgeImage ? (
+              <Image
+                source={badgeImage}
+                style={styles.badgeImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name={badge.icon}
+                size={64}
+                color={badge.color}
+              />
+            )}
           </Animated.View>
 
-          {/* Badge name */}
           <Text variant="headlineMedium" style={[styles.badgeName, { color: badge.color }]}>
             {badge.name}
           </Text>
 
-          {/* Description */}
           <Text variant="bodyMedium" style={styles.badgeDesc}>
             {desc}
           </Text>
 
-          {/* Dismiss */}
-          <TouchableOpacity style={[styles.dismissBtn, { backgroundColor: badge.color }]}
-            onPress={onDismiss}>
+          <TouchableOpacity
+            style={[styles.dismissBtn, { backgroundColor: badge.color }]}
+            onPress={onDismiss}
+          >
             <Text variant="labelLarge" style={styles.dismissBtnText}>Awesome!</Text>
           </TouchableOpacity>
 
@@ -287,6 +307,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 4,
+  },
+  badgeImage: {
+    width: 90,
+    height: 90,
   },
   badgeName: {
     fontWeight: 'bold',
