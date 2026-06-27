@@ -15,13 +15,14 @@ Students earn XP and level up as they complete lessons and quizzes, collect achi
 ## ✨ Key Features
 
 ### Student Experience
+- **Animated Splash Screen** — Custom animated splash with logo spring-in, title fade, tagline reveal, and glow pulse before transitioning into the app
 - **Gamified Progression** — Earn XP for every lesson completed and quiz passed. Level up through 10 titles from *Newbie* to *Code Legend*
-- **Achievement Badges** — 12 unlockable badges with criteria ranging from daily streaks to perfect quiz scores
+- **Achievement Badges** — 12 unlockable badges with custom WebP artwork, criteria ranging from daily streaks to perfect quiz scores
 - **Course Leaderboards** — Course-scoped weekly and all-time rankings with a gold/silver/bronze podium and public player profiles
 - **Daily Streak System** — Daily activity tracking with streak milestones rewarding bonus XP at 7 and 30 days
 - **Interactive Quizzes** — Per-question countdown timers, instant answer feedback with explanations, haptic responses, and sound effects
 - **Level-Up Animation** — Full-screen particle animation with sound triggered on every level threshold crossed
-- **Badge Unlock Modal** — Full-screen celebration with particles, bounce animation, and sound on every new badge earned
+- **Badge Unlock Modal** — Full-screen celebration with particles, bounce animation, custom WebP badge artwork, and 7-second auto-dismiss
 - **Daily Goal Ring** — Tracks real study minutes completed today against the student's personal daily target
 - **Resume Card** — Home screen card showing the last lesson accessed with one-tap navigation back into the course
 - **Public Profiles** — View any student's badges, XP, level, and stats from the leaderboard
@@ -43,7 +44,7 @@ Students earn XP and level up as they complete lessons and quizzes, collect achi
 - **Resilient Connectivity** — No Internet overlay with retry mechanism, animated pulse, and troubleshooting tips
 - **Sound Effects** — 9 bundled MP3 sound effects for XP earn, badge unlock, level-up, correct/wrong answers, button taps, and streak milestones
 - **Haptic Feedback** — Full haptic feedback for all key interactions across success, error, light, and heavy categories
-- **Firestore Security Rules** — Production-grade rules enforcing role-based access at the database level. XP and level fields are write-protected from the client
+- **Firestore Security Rules** — Production-grade rules enforcing role-based access at the database level. Only `role` is write-protected from the client; XP, level, and badges are writable by the authenticated owner
 
 ---
 
@@ -54,8 +55,8 @@ Students earn XP and level up as they complete lessons and quizzes, collect achi
 | Framework | React Native (Expo SDK 54) | iOS + Android from one codebase |
 | UI Library | React Native Paper (MD3) | Dark theme, consistent components |
 | Navigation | React Navigation v6 | Stack + bottom tab navigators |
-| State Management | Zustand | Auth store, user store, lesson/quiz stores |
-| Auth & Database | Firebase Auth + Firestore | Free Spark tier |
+| State Management | Zustand | Auth store, user store |
+| Auth & Database | Firebase Auth + Firestore | Free Spark tier — no Cloud Functions |
 | Game Logic | Hybrid Local Model | Instant device-side XP + Firestore sync |
 | Cloud Functions | Firebase Cloud Functions | Written, awaiting Blaze plan deployment |
 | Profile Photos | Cloudinary (Free Tier) | Unsigned upload preset |
@@ -63,7 +64,7 @@ Students earn XP and level up as they complete lessons and quizzes, collect achi
 | Haptics | expo-haptics | Success, error, light, and heavy feedback |
 | Forms | React Hook Form | Validation on all auth and content forms |
 | Icons | @expo/vector-icons (MaterialCommunityIcons) | Used throughout |
-| Badge Assets | 12 custom WebP images | Compressed to ~2MB total |
+| Badge Assets | 12 custom WebP images | Compressed, bundled in assets/badges/ |
 | Network Detection | @react-native-community/netinfo | Online/offline guard |
 | Demo Device | iPhone (Expo Go, SDK 54) | |
 
@@ -86,20 +87,21 @@ Students earn XP and level up as they complete lessons and quizzes, collect achi
 ### Student Experience
 - [x] Authentication — Register, Login, Logout
 - [x] Onboarding — Avatar selection, daily goal, subject interests
+- [x] Animated Splash Screen — Logo spring, title + tagline fade, glow pulse, auto-transition
 - [x] Home Dashboard — XP bar, streak, stats, daily goal ring (real study time), resume card, enrolled courses, latest badge
 - [x] Course Browser — Search, subject filters, enrolment flow
 - [x] My Course Screen — Module accordion, lesson list, per-module progress bars
 - [x] Lesson Detail — Rich text rendering, code block formatting, completion flow
 - [x] Quiz Screen — Per-question timer, haptics, sounds, answer reveal, explanation
 - [x] Quiz Result Screen — Grade, XP earned, retry, continue
-- [x] Badges Screen — Full gallery, earned/locked states, detail modal
-- [x] Badge Unlock Modal — Full-screen celebration with particles and sound
+- [x] Badges Screen — Full gallery with WebP artwork, earned/locked states, detail modal
+- [x] Badge Unlock Modal — Full-screen celebration with particles, WebP badge image, 7-second auto-dismiss
 - [x] Leaderboard Screen — Course-scoped, weekly/all-time tabs, podium, public profiles
 - [x] Profile Screen — Stats, avatar picker, sound/haptic toggles, logout
 - [x] Public Profile Screen — View other students' badges, XP, level, stats
 - [x] Level-Up Animation — Particle screen, sound, haptics, auto-dismiss
 - [x] No Internet Screen — Retry mechanism, animated pulse, troubleshooting tips
-- [x] Streak Logic — Local device-side streak tracking with Firestore sync
+- [x] Streak Logic — Local device-side streak tracking with Firestore sync, runs once per session
 
 ### Instructor Portal
 - [x] Instructor Dashboard — Stats, quick actions, course list, at-risk students
@@ -117,6 +119,7 @@ Students earn XP and level up as they complete lessons and quizzes, collect achi
 - [x] Firestore Database — Full schema implemented
 - [x] Firestore Security Rules — Production rules published
 - [x] Hybrid Gamification Model — Instant local XP + badge + streak logic with Firestore sync
+- [x] Snapshot listener stability — Single session-scoped subscription, streak gate prevents write loops
 - [x] Cloud Functions code written — awardXP, checkBadges, updateLeaderboard
 - [ ] Cloud Functions deployed — Awaiting Firebase Blaze plan activation
 
@@ -124,49 +127,48 @@ Students earn XP and level up as they complete lessons and quizzes, collect achi
 
 ## 📁 Project Structure
 
-```
+---
 ZiniQuest/
-├── App.js                    # PaperProvider + BadgeModalWrapper
+├── App.js
 ├── assets/
-│   ├── badges/               # 12 custom WebP badge images (~2MB total)
-│   └── sounds/               # 9 MP3 sound effects
-├── functions/                # Firebase Cloud Functions (ready to deploy)
+│   ├── badges/
+│   ├── sounds/
+│   ├── icon.png
+│   └── splash-icon.png
+├── functions/
 └── src/
-    ├── config/               # Firebase + Cloudinary config
-    ├── constants/            # Colors, typography, XP rules, subjects
-    ├── components/           # Reusable UI + BadgeUnlockModal
-    ├── hooks/                # useAuth, useUserData, useNetworkStatus
-    ├── navigation/           # AppNavigator, StudentTabs, InstructorTabs
-    ├── screens/
-    │   ├── auth/             # Login, Register, Onboarding
-    │   ├── shared/           # NoInternet, LevelUp
-    │   ├── student/          # Home, CourseBrowser, MyCourse, LessonDetail,
-    │   │                     # Quiz, QuizResult, Badges, Leaderboard,
-    │   │                     # Profile, PublicProfile
-    │   ├── instructor/       # InstructorHome, CreateLesson, CreateQuiz,
-    │   │                     # StudentProgress
-    │   └── admin/            # AdminDashboard, ManageUsers, ManageContent
-    ├── services/             # Firebase service layer
-    ├── store/                # Zustand stores
-    └── utils/                # Level calc, sound player, haptics, date formatting
-```
+├── config/
+├── constants/
+├── components/
+├── hooks/
+├── navigation/
+├── screens/
+│   ├── auth/
+│   ├── shared/
+│   ├── student/
+│   ├── instructor/
+│   └── admin/
+├── services/
+├── store/
+└── utils/
 
 ---
 
 ## 🎯 Demo Flow
 
-1. Register a new student account
-2. Complete onboarding — avatar, daily goal, subjects
-3. Browse and enrol in a course
-4. Open a lesson, read content, mark complete — XP earned, streak updated
-5. Take a quiz — sounds, timer, haptics, instant feedback
-6. View quiz result — grade, XP, pass/fail
-7. Check Home dashboard — updated XP bar, streak, daily goal ring, resume card
-8. View Badges screen — First Step badge unlocked with full modal celebration
-9. View Leaderboard — course ranking with podium
-10. Tap a player → Public Profile
-11. Switch to Instructor role → content creation and student analytics with CSV export
-12. Switch to Admin role → user management and content control
+1. App launches — animated splash screen plays (logo, title, tagline, glow)
+2. Register a new student account
+3. Complete onboarding — avatar, daily goal, subjects
+4. Browse and enrol in a course
+5. Open a lesson, read content, mark complete — XP earned, streak updated
+6. Take a quiz — sounds, timer, haptics, instant feedback
+7. View quiz result — grade, XP, pass/fail
+8. Check Home dashboard — updated XP bar, streak, daily goal ring, resume card
+9. View Badges screen — First Step badge unlocked with full modal celebration and WebP artwork
+10. View Leaderboard — course ranking with podium
+11. Tap a player → Public Profile
+12. Switch to Instructor role → content creation and student analytics with CSV export
+13. Switch to Admin role → user management and content control
 
 ---
 
