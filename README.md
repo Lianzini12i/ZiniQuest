@@ -127,7 +127,7 @@ Students earn XP and level up as they complete lessons and quizzes, collect achi
 
 ## 📁 Project Structure
 
----
+```text
 ZiniQuest/
 ├── App.js
 ├── assets/
@@ -137,23 +137,21 @@ ZiniQuest/
 │   └── splash-icon.png
 ├── functions/
 └── src/
-├── config/
-├── constants/
-├── components/
-├── hooks/
-├── navigation/
-├── screens/
-│   ├── auth/
-│   ├── shared/
-│   ├── student/
-│   ├── instructor/
-│   └── admin/
-├── services/
-├── store/
-└── utils/
-
----
-
+    ├── config/
+    ├── constants/
+    ├── components/
+    ├── hooks/
+    ├── navigation/
+    ├── screens/
+    │   ├── auth/
+    │   ├── shared/
+    │   ├── student/
+    │   ├── instructor/
+    │   └── admin/
+    ├── services/
+    ├── store/
+    └── utils/
+```
 ## 🎯 Demo Flow
 
 1. App launches — animated splash screen plays (logo, title, tagline, glow)
