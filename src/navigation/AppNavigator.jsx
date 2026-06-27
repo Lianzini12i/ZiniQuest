@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';;
+import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { onAuthStateChanged } from "firebase/auth";
@@ -30,48 +30,57 @@ export default function AppNavigator() {
   const { user, isLoading, setUser, setLoading } = useAuthStore();
   const { profile, setProfile } = useUserStore();
   const isConnected = useNetworkStatus();
+  const navigationRef = useRef(null);
+
+  // ── Track whether streak has been run this session ──────────
+  const streakUpdatedRef = useRef(false);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
+      // Reset streak gate on every new login session
+      streakUpdatedRef.current = false;
     });
     return unsubscribeAuth;
   }, []);
 
-  // Subscribe to real-time profile updates when user is logged in
-  const navigationRef = useRef(null);
+  // ── Real-time profile listener ───────────────────────────────
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      streakUpdatedRef.current = false;
+      return;
+    }
 
-useEffect(() => {
-  if (!user) {
-    setProfile(null);
-    return;
-  }
-  const unsubscribeProfile = subscribeToUserProfile(user.uid, (data) => {
-    const wasNotLevelingUp = !profile?.pendingLevelUp;
-    setProfile(data); // This always overwrites with real Firestore XP
-    if (data?.uid) {
-      updateStreak(data.uid);
-    }
-    if (data?.pendingLevelUp && wasNotLevelingUp) {
-      setTimeout(() => {
-        navigationRef.current?.navigate('LevelUp', { level: data.level });
-      }, 500);
-    }
-  });
-  return unsubscribeProfile;
-}, [user]);
+    const unsubscribeProfile = subscribeToUserProfile(user.uid, (data) => {
+      const wasNotLevelingUp = !profile?.pendingLevelUp;
+      setProfile(data);
+
+      // Run streak update only ONCE per session, not on every snapshot
+      if (!streakUpdatedRef.current) {
+        streakUpdatedRef.current = true;
+        updateStreak(data.uid);
+      }
+
+      if (data?.pendingLevelUp && wasNotLevelingUp) {
+        setTimeout(() => {
+          navigationRef.current?.navigate('LevelUp', { level: data.level });
+        }, 500);
+      }
+    });
+
+    return unsubscribeProfile;
+  }, [user]);
 
   if (isLoading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: colors.background,
-        }}
-      >
+      <View style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.background,
+      }}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -91,30 +100,20 @@ useEffect(() => {
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
-          // Auth screens
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           </>
         ) : profile?.role === "admin" ? (
-          // Admin screens
           <>
-            <Stack.Screen
-              name="AdminDashboard"
-              component={AdminDashboardScreen}
-            />
+            <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
             <Stack.Screen name="ManageUsers" component={ManageUsersScreen} />
-            <Stack.Screen
-              name="ManageContent"
-              component={ManageContentScreen}
-            />
+            <Stack.Screen name="ManageContent" component={ManageContentScreen} />
           </>
         ) : profile?.role === "instructor" ? (
-          // Instructor screens
           <Stack.Screen name="InstructorTabs" component={InstructorTabs} />
         ) : (
-          // Student screens — default
           <>
             {profile && !profile.onboardingDone ? (
               <Stack.Screen name="Onboarding" component={OnboardingScreen} />
