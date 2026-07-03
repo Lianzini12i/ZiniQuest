@@ -2,8 +2,6 @@
 
 **ZiniQuest** is a subject-agnostic, gamified mobile learning platform built for tertiary-level students across any academic discipline. By wrapping structured academic content in a game-like progression system — XP, badges, streaks, and leaderboards — ZiniQuest transforms passive studying into an active, rewarding experience.
 
-Built as a B.Sc. Computer Science final year project at Crescent University Abeokuta, supervised by Dr. I. O. Lasisi.
-
 ---
 
 ## Overview
