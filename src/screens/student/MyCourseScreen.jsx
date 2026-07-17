@@ -214,6 +214,20 @@ export default function MyCourseScreen({ route, navigation }) {
 
   useEffect(() => { loadData(); }, []);
 
+// Reload completed lessons every time this screen comes into focus
+// so ticks update immediately after returning from LessonDetailScreen
+useEffect(() => {
+  const unsubscribe = navigation.addListener('focus', async () => {
+    try {
+      const completedData = await getCompletedLessons(user.uid);
+      setCompletedLessons(completedData);
+    } catch (e) {
+      console.warn('Failed to refresh completed lessons:', e.message);
+    }
+  });
+  return unsubscribe;
+}, [navigation]);
+
   // Auto-navigate to initialLessonId if coming from resume card
   useEffect(() => {
     if (!dataLoaded || !initialLessonId) return;

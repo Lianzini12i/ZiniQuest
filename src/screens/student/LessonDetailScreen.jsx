@@ -145,37 +145,38 @@ export default function LessonDetailScreen({ route, navigation }) {
     loadLesson();
   }, [lessonId]);
 
-  const handleComplete = async () => {
-    if (completed || completing) return;
-    setCompleting(true);
-    try {
-      // Mark complete in Firestore
-      await markLessonComplete(user.uid, lessonId);
+const handleComplete = async () => {
+  if (completed || completing) return;
+  setCompleting(true);
+  try {
+    await markLessonComplete(user.uid, lessonId);
 
-      // Determine XP amount from difficulty
-      const xpMap = {
-        beginner:     XP_RULES.LESSON_BEGINNER,
-        intermediate: XP_RULES.LESSON_INTERMEDIATE,
-        advanced:     XP_RULES.LESSON_ADVANCED,
-      };
-      const xpAmount = xpMap[lesson.difficulty] || XP_RULES.LESSON_BEGINNER;
+    const xpMap = {
+      beginner:     XP_RULES.LESSON_BEGINNER,
+      intermediate: XP_RULES.LESSON_INTERMEDIATE,
+      advanced:     XP_RULES.LESSON_ADVANCED,
+    };
+    const xpAmount = xpMap[lesson.difficulty] || XP_RULES.LESSON_BEGINNER;
 
-      // Hybrid model — instant local feedback + server sync
-      await awardXP('LESSON_COMPLETE', lesson.courseId, xpAmount, user.uid);
-      await triggerBadgeCheck(user.uid);
+    await awardXP('LESSON_COMPLETE', lesson.courseId, xpAmount, user.uid);
+    await triggerBadgeCheck(user.uid);
+    await hapticSuccess();
+    await playSound('xp-earn');
 
-      await hapticSuccess();
-      await playSound('xp-earn');
+    setCompleted(true);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
 
-      setCompleted(true);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-    } catch (e) {
-      console.warn('Failed to complete lesson:', e.message);
-    } finally {
-      setCompleting(false);
+    // ── Auto-navigate back if no quiz follows ─────────────
+    if (!hasQuiz) {
+      setTimeout(() => navigation.goBack(), 1200);
     }
-  };
+  } catch (e) {
+    console.warn('Failed to complete lesson:', e.message);
+  } finally {
+    setCompleting(false);
+  }
+};
 
   const handleStartQuiz = () => {
     hapticLight();
