@@ -32,6 +32,10 @@ export async function enrollInCourse(uid, courseId) {
   await updateDoc(doc(db, 'users', uid), {
     enrolledCourses: arrayUnion(courseId),
   });
+
+  await updateDoc(doc(db, 'courses', courseId), {
+    enrollmentCount: increment(1),
+  });
 }
 
 export async function isEnrolled(uid, courseId) {

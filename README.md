@@ -119,7 +119,6 @@ Students earn XP and level up as they complete lessons and quizzes, collect achi
 - [x] Hybrid Gamification Model — Instant local XP, badge, and streak logic with Firestore sync
 - [x] Snapshot listener stability — Single session-scoped subscription, streak gate prevents write loops
 - [x] Cloud Functions code written — awardXP, checkBadges, updateLeaderboard
-- [ ] Cloud Functions deployed — Awaiting Firebase Blaze plan activation
 
 ---
 
@@ -152,7 +151,7 @@ ZiniQuest/
 ```
 ## 🎯 Demo Flow
 
-1. App launches — animated splash screen plays (logo, title, tagline, glow)
+1. App launches — animated splash screen plays
 2. Register a new student account
 3. Complete onboarding — avatar, daily goal, subjects
 4. Browse and enrol in a course
@@ -160,8 +159,8 @@ ZiniQuest/
 6. Take a quiz — sounds, timer, haptics, instant feedback
 7. View quiz result — grade, XP, pass/fail
 8. Check Home dashboard — updated XP bar, streak, daily goal ring, resume card
-9. View Badges screen — First Step badge unlocked with full modal celebration and WebP artwork
-10. View Leaderboard — course ranking with podium
+9. View Badges screen (First Step badge unlocked with full modal celebration and WebP artwork)
+10. View Leaderboard (course ranking with podium)
 11. Tap a player to view Public Profile
 12. Switch to Instructor role — content creation and student analytics with CSV export
 13. Switch to Admin role — user management and content control

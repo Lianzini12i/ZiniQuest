@@ -13,7 +13,6 @@ import { hapticSuccess, hapticHeavy } from '../utils/haptics';
 import { getTodayString } from '../utils/formatDate';
 import { getLevelFromXP } from '../utils/levelCalc';
 
-// ── Streak Logic (local — runs on device) ────────────────────
 async function updateStreakLocally(uid) {
   try {
     const userRef  = doc(db, 'users', uid);
@@ -74,7 +73,6 @@ async function updateStreakLocally(uid) {
   }
 }
 
-// ── XP Logic (local — runs on device) ───────────────────────
 async function awardXPLocally(uid, xpAmount) {
   try {
     const userRef  = doc(db, 'users', uid);
@@ -88,8 +86,6 @@ async function awardXPLocally(uid, xpAmount) {
     const newLevel   = getLevelFromXP(newXP);
     const leveledUp  = newLevel.level > currentLvl;
 
-    // Write to Firestore — this triggers the real-time listener
-    // which updates the profile in the store automatically
     await updateDoc(userRef, {
       xp:             newXP,
       level:          newLevel.level,
@@ -228,7 +224,6 @@ export async function awardXP(actionType, contextId, xpAmount, uid) {
     }
   }
 
-  // Step 3 — Try Cloud Function as well (if Blaze ever activated)
   try {
     const fn = httpsCallable(functions, 'awardXP');
     await fn({ actionType, contextId, xpAmount });
@@ -246,7 +241,6 @@ for (const badgeId of newBadges) {
   await new Promise(r => setTimeout(r, 300));
 }
 
-  // Also try Cloud Function (if Blaze ever activated)
   try {
     const fn = httpsCallable(functions, 'checkBadges');
     await fn({ uid });
